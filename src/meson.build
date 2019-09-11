@@ -165,7 +165,7 @@ if not cross_android_build
                              build_by_default : true,
                              install : true,
                              install_dir : libga_installdir,
-                             depends : libga)
+                             depends : libga.get_static_lib())
 endif
 
 if objcopy.found() and not is_darwin
