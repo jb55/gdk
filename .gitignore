@@ -3,10 +3,13 @@
 #
 
 !.gitignore
+/result*
+/build
 /build-gcc*/
 /build-clang*/
 /*/*/*/.build/
 /subprojects/*
+!subprojects/gdk_rpc*
 !subprojects/*meson*
 !subprojects/*wrap*
 *.swp
