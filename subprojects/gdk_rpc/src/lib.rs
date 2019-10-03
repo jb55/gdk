@@ -234,37 +234,37 @@ pub extern "C" fn GDKRPC_connect(
 
     log::set_max_level(log_filter(log_level));
 
-    let network_name = &safe_ref!(network_name).0;
-    let name = obj_str(net_params, "name");
-    let mwallet = obj_str(net_params, "wallet");
+    // let network_name = &safe_ref!(network_name).0;
+    // let name = obj_str(net_params, "name");
+    // let mwallet = obj_str(net_params, "wallet");
 
-    let mnetwork = Network::get(name)?;
+    // let mnetwork = Network::get(name)?;
 
-    if mrpc.is_none() {
-        println!("Couldn't parse rpc json in GDKRPC_connect: {:#?}", rpcjson);
-        return GA_ERROR;
-    }
-    let rpc = mrpc.unwrap();
+    // if mrpc.is_none() {
+    //     println!("Couldn't parse rpc json in GDKRPC_connect: {:#?}", rpcjson);
+    //     return GA_ERROR;
+    // }
+    // let rpc = mrpc.unwrap();
 
-    println!("Connecting to {} socks5({:#?})", rpc.url, rpc.socks5);
-    let mclient = network::connect(&rpc, mwallet);
+    // println!("Connecting to {} socks5({:#?})", rpc.url, rpc.socks5);
+    // let mclient = network::connect(&rpc, mwallet);
 
-    if let Err(msg) = mclient {
-        println!("Error connecting to rpc: {}", msg);
-        return GA_ERROR;
-    }
+    // if let Err(msg) = mclient {
+    //     println!("Error connecting to rpc: {}", msg);
+    //     return GA_ERROR;
+    // }
 
-    let client = mclient.unwrap();
+    // let client = mclient.unwrap();
 
-    if let Err(msg) = mnetwork {
-        println!("Error detecting networking: {}", msg);
-        return GA_ERROR;
-    }
-    sess.network = mnetwork.ok();
+    // if let Err(msg) = mnetwork {
+    //     println!("Error detecting networking: {}", msg);
+    //     return GA_ERROR;
+    // }
+    // sess.network = mnetwork.ok();
 
-    println!("Network: {:#?}", sess.network);
+    // println!("Network: {:#?}", sess.network);
 
-    debug!("GA_connect() {:?}", sess);
+    // debug!("GA_connect() {:?}", sess);
 
     GA_OK
 }
