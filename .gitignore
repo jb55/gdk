@@ -5,6 +5,8 @@
 !.gitignore
 /result*
 /build
+target/release
+target/debug
 /build-gcc*/
 /build-clang*/
 /*/*/*/.build/

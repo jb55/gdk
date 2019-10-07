@@ -1,35 +1,49 @@
-project('gdk_rpc', ['c'], meson_version : '>= 0.51.2')
+project('gdk_rpc', 'c', meson_version : '>= 0.51.2')
 
 message('Building gdk_rpc...')
 
-run_cmd_args = []
+cargo_script = find_program(join_paths(meson.source_root(), 'tools', 'buildgdk_rpc.sh'))
+
+run_cmd_args = [cargo_script]
+
+if get_option('buildtype') == 'debug'
+  run_cmd_args += ['debug']
+else
+  run_cmd_args += ['release']
+endif
+
+run_cmd_args += ['@OUTPUT@']
+run_cmd_args += [meson.source_root()]
+run_cmd_args += [meson.build_root()]
 
 target_os = meson.get_cross_property('target_os', '')
 if target_os != ''
     run_cmd_args += ['--' + target_os]
 endif
 
-gdk_rpc_deps = []
-gdk_rpc_deps += subproject('libwally-core')
+rust_sources = [
+  'src/session.rs',
+  'src/lib.rs',
+  'src/settings.rs',
+  'src/network.rs',
+  'src/coins/liq.rs',
+  'src/coins/btc.rs',
+  'src/wally.rs',
+  'src/wallet.rs',
+  'src/util.rs',
+  'src/errors.rs',
+  'src/coins.rs',
+  'src/constants.rs']
 
-res = run_command(join_paths(meson.source_root(), 'tools', 'buildgdk_rpc.sh'), run_cmd_args)
-if res.returncode() != 0
-    message('--- Failed to run command (stdout) ---')
-    message(res.stdout())
-    message('--- Failed to run command (stderr) ---')
-    message(res.stderr())
-endif
+gdk_rpc_target = custom_target('libgdk_rpc',
+                               input : rust_sources,
+                               output : 'libgdk_rpc.a',
+                               command : run_cmd_args)
 
-gdk_rpc_dir_name = 'gdk_rpc'
-incdir = join_paths('..', '..', meson.build_root().split('/')[-1], gdk_rpc_dir_name)
+incdir = include_directories(join_paths('..', '..', meson.build_root().split('/')[-1], 'subprojects', 'gdk_rpc'))
 
-libdir = join_paths(meson.build_root(), gdk_rpc_dir_name, 'target', 'release')
-all_libs = []
-
-compiler = meson.get_compiler('c')
-gdk_rpc_lib = compiler.find_library('gdk_rpc', dirs : libdir)
-all_libs += gdk_rpc_lib
-
+gdk_rpc_deps = [subproject('libwally-core').get_variable('wallycore_dep')]
 gdk_rpc_dep = declare_dependency(
-    include_directories : include_directories(incdir),
-    dependencies : all_libs)
+  include_directories : incdir,
+  dependencies : gdk_rpc_deps
+)
