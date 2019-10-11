@@ -288,4 +288,11 @@ if get_option('enable-tests')
                   link_with: libga.get_static_lib(),
                   dependencies: dependencies
                 ))
+
+
+  test('test rpc',
+       executable('test_rpc', 'tests/test_rpc.cpp',
+                  link_with: libga.get_static_lib(),
+                  dependencies: dependencies
+       ))
 endif
