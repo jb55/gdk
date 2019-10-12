@@ -1,5 +1,5 @@
-#ifndef GDK_GDK_H
-#define GDK_GDK_H
+#ifndef GDK_GDK_RPC_H
+#define GDK_GDK_RPC_H
 #pragma once
 
 #include <stddef.h>
@@ -22,38 +22,11 @@ extern "C" {
 #define GDK_API
 #endif
 
-/** Error codes for API calls */
-#define GA_OK 0
-#define GA_ERROR (-1)
-#define GA_RECONNECT (-2)
-#define GA_SESSION_LOST (-3)
-#define GA_TIMEOUT (-4)
-#define GA_NOT_AUTHORIZED (-5)
-
-/** Logging levels */
-#define GA_NONE 0
-#define GA_INFO 1
-#define GA_DEBUG 2
-
-/** Boolean values */
-#define GA_TRUE 1
-#define GA_FALSE 0
-
 /** A server session */
 typedef struct GDKRPC_session GDKRPC_session;
 
 /** A Parsed JSON object */
 typedef struct GDKRPC_json GDKRPC_json;
-
-/** An api method call that potentially requires two factor authentication to complete */
-struct GA_auth_handler;
-
-/** A notification handler */
-typedef void (*GA_notification_handler)(void* context, const GDKRPC_json* details);
-
-/** Values for transaction memo type */
-#define GA_MEMO_USER 0
-#define GA_MEMO_BIP70 1
 
 /**
  * Create a new session.
@@ -359,7 +332,7 @@ GDK_API int GDKRPC_get_settings(struct GDKRPC_session* session, GDKRPC_json** se
  * the handler with a :ref:`session-event` notification.
  *
  */
-GDK_API int GDKRPC_set_notification_handler(struct GDKRPC_session* session, GA_notification_handler handler, void* context);
+/* GDK_API int GDKRPC_set_notification_handler(struct GDKRPC_session* session, GA_notification_handler handler, void* context); */
 
 GDK_API int GDKRPC_convert_json_to_string(const GDKRPC_json* json, char** output);
 
@@ -415,4 +388,4 @@ GDK_API int GDKRPC_get_networks(GDKRPC_json** output);
 } /* extern "C" */
 #endif
 
-#endif /* GDK_GDK_H */
+#endif /* GDK_GDK_RPC_H */

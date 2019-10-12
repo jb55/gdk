@@ -50,6 +50,7 @@ use serde_json::{from_value, Value};
 use std::ffi::CString;
 use std::mem::transmute;
 use std::os::raw::c_char;
+use bitcoincore_rpc::RpcApi;
 
 #[cfg(feature = "android_logger")]
 use std::sync::{Once, ONCE_INIT};
@@ -212,7 +213,7 @@ fn obj_bool(val: &Value, key: &str) -> Option<bool> {
 }
 
 fn json_to_rpc_config(val: &Value) -> Option<RpcConfig> {
-    let url = obj_string(val, "uri")?;
+    let url = obj_string(val, "rpc_url")?;
     let user = obj_string(val, "username")?;
     let pass = obj_string(val, "password")?;
     let msocks5 = obj_string(val, "socks5");
@@ -234,37 +235,35 @@ pub extern "C" fn GDKRPC_connect(
 
     log::set_max_level(log_filter(log_level));
 
-    // let network_name = &safe_ref!(network_name).0;
-    // let name = obj_str(net_params, "name");
-    // let mwallet = obj_str(net_params, "wallet");
+    let net_params = &safe_ref!(net_params).0;
+    let name = obj_str(net_params, "name");
+    let mwallet = obj_str(net_params, "wallet");
 
-    // let mnetwork = Network::get(name)?;
+    let mrpc = json_to_rpc_config(net_params);
 
-    // if mrpc.is_none() {
-    //     println!("Couldn't parse rpc json in GDKRPC_connect: {:#?}", rpcjson);
-    //     return GA_ERROR;
-    // }
-    // let rpc = mrpc.unwrap();
+    if mrpc.is_none() {
+        println!("Couldn't parse rpc json in GDKRPC_connect: {:#?}", net_params);
+        return GA_ERROR;
+    }
+    let rpc = mrpc.unwrap();
 
-    // println!("Connecting to {} socks5({:#?})", rpc.url, rpc.socks5);
-    // let mclient = network::connect(&rpc, mwallet);
+    println!("Connecting to {} socks5({:#?})", rpc.url, rpc.socks5);
+    let mclient = Network::connect(&rpc, mwallet);
 
-    // if let Err(msg) = mclient {
-    //     println!("Error connecting to rpc: {}", msg);
-    //     return GA_ERROR;
-    // }
+    if let Err(msg) = mclient {
+        println!("Error connecting to rpc: {}", msg);
+        return GA_ERROR;
+    }
 
-    // let client = mclient.unwrap();
+    let client = mclient.unwrap();
 
-    // if let Err(msg) = mnetwork {
-    //     println!("Error detecting networking: {}", msg);
-    //     return GA_ERROR;
-    // }
-    // sess.network = mnetwork.ok();
+    let count = client.get_block_count();
+    println!("block count: {:?}", count);
 
-    // println!("Network: {:#?}", sess.network);
+    println!("Client: {:#?}", client);
+    println!("Network: {:#?}", sess.network);
 
-    // debug!("GA_connect() {:?}", sess);
+    debug!("GA_connect() {:?}", sess);
 
     GA_OK
 }
