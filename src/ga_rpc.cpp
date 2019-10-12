@@ -1,5 +1,5 @@
 #include "ga_rpc.hpp"
-#include "gdk_rpc.h"
+#include "../subprojects/gdk_rpc/gdk_rpc.h"
 #include <nlohmann/json.hpp>
 
 namespace {
