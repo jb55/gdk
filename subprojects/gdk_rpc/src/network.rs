@@ -22,7 +22,7 @@ pub struct RpcConfig {
     pub socks5: Option<String>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Network {
     name: String,
     network: String,

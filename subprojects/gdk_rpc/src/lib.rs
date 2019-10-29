@@ -105,13 +105,12 @@ macro_rules! tryit {
     ($x:expr) => {
         match $x {
             Err(err) => {
-                debug!("error: {:?}", err);
+                println!("error: {:?}", err);
                 return GA_ERROR;
             }
             Ok(x) => {
                 // can't easily print x because bitcoincore_rpc::Client is not serializable :(
                 // should be fixed with https://github.com/rust-bitcoin/rust-bitcoincore-rpc/pull/51
-                debug!("tryit!() succeed");
                 x
             }
         }
@@ -349,8 +348,6 @@ pub extern "C" fn GDKRPC_get_transactions(
 
     let wallet = tryit!(sess.wallet().or_err("no loaded wallet"));
     let txs = tryit!(wallet.get_transactions(&details));
-
-    // XXX should we free details or should the client?
 
     ok_json!(ret, txs)
 }
@@ -853,6 +850,20 @@ pub extern "C" fn GDKRPC_register_network(
     _name: *const c_char,
     _network_details: *const GDKRPC_json,
 ) -> i32 {
+    // let json : Value = safe_ref!(_network_details).0;
+    // let name : String = read_str(_name);
+    // let mnetwork : Result<Network, serde_json::Error> = serde_json::from_value(json);
+
+    // if let Err(err) = mnetwork {
+    //     println!("Error parsing network json in GDKRPC_register_network: {}", err);
+    //     return GA_ERROR
+    // }
+
+    // let network = mnetwork.unwrap();
+
+    // Network::list().insert(name, network);
+
+    // GA_OK
     GA_ERROR
 }
 

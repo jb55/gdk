@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 #include "ga_rpc.hpp"
+#include "logging.hpp"
 
 namespace ga {
 namespace sdk {
@@ -141,12 +142,21 @@ namespace sdk {
     nlohmann::json ga_rpc::get_transactions(const nlohmann::json& details)
     {
         GDKRPC_json* ret;
+        nlohmann::json actual_details;
 
-        auto converted_details = gdkrpc_json(details);
+        if (details.is_null()) {
+            actual_details["page_id"] = 0;
+        } else {
+            actual_details = details;
+        }
 
-        std::cout << "converted_details:\n" << details.dump() << "\n";
+        auto converted_details = gdkrpc_json(actual_details);
 
-        GDKRPC_get_transactions(m_session, converted_details.get(), &ret);
+        int ok = GDKRPC_get_transactions(m_session, converted_details.get(), &ret);
+
+        if (ok != GA_OK) {
+            return nlohmann::json{};
+        }
 
         return gdkrpc_json::from_serde(ret);
     }

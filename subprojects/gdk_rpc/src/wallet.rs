@@ -594,20 +594,20 @@ impl fmt::Debug for Wallet {
 /// This method can be provided with a response from either
 /// `gettransaction` or `listtransactions`.
 /// It returns "" if none if found.
-fn find_memo_in_desc(txid: sha256d::Hash, txdesc: &Value) -> Result<String, Error> {
+fn find_memo_in_desc(txid: &sha256d::Hash, txdesc: &Value) -> Result<String, Error> {
     // First we try the top-level label field from listtransactions.
-    if let Some(label) = txdesc["label"].as_str() {
+    if let Some(label) = txdesc.get("label").and_then(|x| x.as_str()) {
         let meta = AddressMeta::from_label(Some(label))?;
-        if let Some(memo) = meta.txmemo.get(&txid) {
+        if let Some(memo) = meta.txmemo.get(txid) {
             return Ok(memo.to_owned());
         }
     }
 
     // Then we iterate over the details array.
-    if let Some(details) = txdesc["details"].as_array() {
+    if let Some(details) = txdesc.get("details").and_then(|x| x.as_array()) {
         for detail in details {
-            let meta = AddressMeta::from_label(detail["label"].as_str())?;
-            if let Some(memo) = meta.txmemo.get(&txid) {
+            let meta = AddressMeta::from_label(detail.get("label").and_then(|x| x.as_str()))?;
+            if let Some(memo) = meta.txmemo.get(txid) {
                 return Ok(memo.to_owned());
             }
         }
@@ -651,21 +651,32 @@ fn format_gdk_tx(txdesc: &Value, raw_tx: &[u8], network: NetworkId) -> Result<Va
         NetworkId::Bitcoin(_) => coins::btc::tx_props(&raw_tx)?,
         NetworkId::Elements(_) => coins::liq::tx_props(&raw_tx)?,
     };
+
     let vsize = tx_props["transaction_vsize"].as_u64().unwrap();
+
+    let rbf_optin = txdesc
+        .get("bip125-replaceable")
+        .and_then(|t| t.as_str())
+        .map(|t| t == "yes")
+        .unwrap_or(true);
+
+    // let memo = find_memo_in_desc(txid, &txdesc).unwrap_or_default();
+    let maybe_memo = find_memo_in_desc(&txid, &txdesc);
+    let created_at = fmt_time(txdesc["time"].as_u64().req()?);
 
     let ret = json!({
         "block_height": 1,
-        "created_at": fmt_time(txdesc["time"].as_u64().req()?),
+        "created_at": created_at,
 
         "type": type_str,
-        "memo": find_memo_in_desc(txid, &txdesc)?,
+        "memo": maybe_memo.unwrap_or_default(),
 
         "txhash": txid.to_hex(),
         "transaction": hex::encode(&raw_tx),
 
         "satoshi": amount,
 
-        "rbf_optin": txdesc["bip125-replaceable"].as_str().req()? == "yes",
+        "rbf_optin": rbf_optin,
         "cap_cpfp": false, // TODO
         "can_rbf": false, // TODO
         "has_payment_request": false, // TODO
