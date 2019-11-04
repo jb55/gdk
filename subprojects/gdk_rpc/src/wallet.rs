@@ -268,7 +268,7 @@ impl Wallet {
         // XXX does the app care about the transaction data in the event?
         if let Some(last_tx) = self._get_transactions(1, 0)?.0.get(0) {
             let txid = last_tx["txhash"].as_str().req()?;
-            let txid: sha256d::Hash = into_err(sha256d::Hash::from_hex(txid))?;
+            let txid: sha256d::Hash = sha256d::Hash::from_hex(txid).map_err(into_err)?;
 
             if self.last_tx != Some(txid) {
                 self.last_tx = Some(txid);
@@ -349,7 +349,7 @@ impl Wallet {
         let mut txs = Vec::new();
         for desc in txdescs.into_iter() {
             let txid: sha256d::Hash =
-                into_err(sha256d::Hash::from_hex(desc["txid"].as_str().req()?))?;
+                sha256d::Hash::from_hex(desc["txid"].as_str().req()?).map_err(into_err)?;
             let blockhash = &desc["blockhash"];
 
             let tx_hex: String = self.rpc.call(
@@ -363,7 +363,7 @@ impl Wallet {
     }
 
     pub fn get_transaction(&self, txid: &str) -> Result<Value, Error> {
-        let txid: sha256d::Hash = into_err(sha256d::Hash::from_hex(txid))?;
+        let txid: sha256d::Hash = sha256d::Hash::from_hex(txid).map_err(into_err)?;
         let desc: Value = self.rpc.call("gettransaction", &[txid.to_hex().into(), true.into()])?;
         let raw_tx = hex::decode(desc["hex"].as_str().req()?)?;
 
@@ -537,7 +537,7 @@ impl Wallet {
 
     pub fn set_tx_memo(&self, txid: &str, memo: &str) -> Result<(), Error> {
         // we can't really set a tx memo, so we fake it by setting a memo on the address
-        let txid: sha256d::Hash = into_err(sha256d::Hash::from_hex(txid))?;
+        let txid: sha256d::Hash = sha256d::Hash::from_hex(txid).map_err(into_err)?;
 
         let txdesc: Value =
             self.rpc.call("gettransaction", &[txid.to_hex().into(), true.into()])?;
@@ -617,7 +617,7 @@ fn find_memo_in_desc(txid: sha256d::Hash, txdesc: &Value) -> Result<String, Erro
 }
 
 fn format_gdk_tx(txdesc: &Value, raw_tx: &[u8], network: NetworkId) -> Result<Value, Error> {
-    let txid: sha256d::Hash = into_err(sha256d::Hash::from_hex(txdesc["txid"].as_str().req()?))?;
+    let txid: sha256d::Hash = sha256d::Hash::from_hex(txdesc["txid"].as_str().req()?).map_err(into_err)?;
     //TODO(stevenroose) optimize with Amount
     let amount = match network {
         NetworkId::Elements(..) => btc_to_isat(match txdesc["amount"] {

@@ -63,11 +63,11 @@ pub fn fmt_time(unix_ts: u64) -> String {
 }
 
 // nuclear option, if we need to convert an error without From or Display
-pub fn into_err<A, E>(err: E) -> Result<A, Error>
+pub fn into_err<E>(err: E) -> Error
 where
     E: std::fmt::Debug,
 {
-    Err(Error::Other(From::from(format!("{:?}", err))))
+    Error::Other(From::from(format!("{:?}", err)))
 }
 
 pub fn parse_outs(details: &Value) -> Result<HashMap<String, Amount>, Error> {
