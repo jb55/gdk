@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::env;
 use std::fs;
-use std::path::Path;
 
 use bitcoin::network::constants::Network as NetworkType;
 use bitcoincore_rpc::{Auth, Client};
@@ -52,13 +50,13 @@ lazy_static! {
     static ref NETWORKS: HashMap<String, Network> = {
         let mut networks = HashMap::new();
 
-        let rpc_url = env::var("BITCOIND_URL")
-            .ok()
-            .unwrap_or_else(|| "http://127.0.0.1:18443".to_string());
+        // let rpc_url = env::var("BITCOIND_URL")
+        //     .ok()
+        //     .unwrap_or_else(|| "http://127.0.0.1:18443".to_string());
 
-        let rpc_cookie = env::var("BITCOIND_DIR")
-            .ok()
-            .map(|p| Path::new(&p).join(".cookie").to_string_lossy().into_owned());
+        // let rpc_cookie = env::var("BITCOIND_DIR")
+        //     .ok()
+        //     .map(|p| Path::new(&p).join(".cookie").to_string_lossy().into_owned());
 
         networks.insert(
             "bitcoin-regtest".to_string(),
@@ -228,7 +226,6 @@ pub fn detect_network_config(client: Client, is_elements: bool) -> Result<Networ
         (NetworkType::Bitcoin, true) => Some("elements-mainnet"),
         (NetworkType::Regtest, true) => Some("elements-regtest"),
         (NetworkType::Testnet, true) => Some("elements-testnet"),
-        _ => None,
     }
     .ok_or(Error::Other("unknown network configuration".into()))?;
 

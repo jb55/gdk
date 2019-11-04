@@ -21,7 +21,6 @@ _GDKRPC_get_twofactor_config
 _GDKRPC_get_unspent_outputs
 _GDKRPC_get_unspent_outputs_for_private_key
 _GDKRPC_login
-_GDKRPC_login_with_pin
 _GDKRPC_register_network
 _GDKRPC_register_user
 _GDKRPC_send_nlocktimes

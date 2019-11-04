@@ -101,7 +101,7 @@ namespace sdk {
     }
     void ga_rpc::login(const std::string& mnemonic, const std::string& password)
     {
-        throw std::runtime_error("login not implemented");
+        GDKRPC_login(m_session, nullptr, mnemonic.c_str(), password.c_str());
     }
     void ga_rpc::login_with_pin(const std::string& pin, const nlohmann::json& pin_data)
     {

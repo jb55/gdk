@@ -58,9 +58,9 @@ use std::sync::{Once, ONCE_INIT};
 use crate::constants::{GA_ERROR, GA_MEMO_USER, GA_OK};
 use crate::errors::OptionExt;
 use crate::network::{Network, RpcConfig};
+use crate::wallet::Wallet;
 use crate::session::GDKRPC_session;
 use crate::util::{extend, log_filter, make_str, read_str};
-use crate::wallet::Wallet;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -235,7 +235,6 @@ pub extern "C" fn GDKRPC_connect(
     log::set_max_level(log_filter(log_level));
 
     let net_params = &safe_ref!(net_params).0;
-    let name = obj_str(net_params, "name");
     let mwallet = obj_str(net_params, "wallet");
 
     let mrpc = json_to_rpc_config(net_params);
@@ -255,12 +254,17 @@ pub extern "C" fn GDKRPC_connect(
     }
 
     let client = mclient.unwrap();
+    let mcount = client.get_block_count();
 
-    let count = client.get_block_count();
-    println!("block count: {:?}", count);
+    if let Err(msg) = mcount {
+        println!("Error establishing connection to rpc: {}", msg);
+        return GA_ERROR;
+    }
+
+    sess.rpc_cfg = Some(rpc);
 
     println!("Client: {:#?}", client);
-    println!("Network: {:#?}", sess.network);
+    println!("RpcConfig: {:#?}", sess.rpc_cfg);
 
     debug!("GA_connect() {:?}", sess);
 
@@ -271,7 +275,7 @@ pub extern "C" fn GDKRPC_connect(
 pub extern "C" fn GDKRPC_disconnect(sess: *mut GDKRPC_session) -> i32 {
     let sess = safe_mut_ref!(sess);
 
-    sess.network = None;
+    sess.rpc_cfg = None;
     if let Some(wallet) = sess.wallet.take() {
         tryit!(wallet.logout());
     }
@@ -290,7 +294,7 @@ pub extern "C" fn GDKRPC_register_user(
     let mnemonic = read_str(mnemonic);
 
     debug!("GA_register_user({:?}) {:?}", mnemonic, sess);
-    tryit!(sess.network.as_ref().or_err("session not connected"));
+    tryit!(sess.rpc_cfg.as_ref().or_err("session not connected"));
     // sess.wallet = Some(tryit!(Wallet::register(network, &mnemonic)));
 
     ok!(ret, GA_auth_handler::success())
@@ -302,34 +306,42 @@ pub extern "C" fn GDKRPC_login(
     _hw_device: *const GDKRPC_json,
     mnemonic: *const c_char,
     password: *const c_char,
-    ret: *mut *const GA_auth_handler,
 ) -> i32 {
     let sess = safe_mut_ref!(sess);
 
     let mnemonic = read_str(mnemonic);
 
     if !read_str(password).is_empty() {
-        warn!("password-encrypted mnemonics are unsupported");
+        println!("password-encrypted mnemonics are unsupported");
         return GA_ERROR;
     }
 
     if let Some(ref wallet) = sess.wallet {
         if wallet.mnemonic() != mnemonic {
-            warn!("user called login but was already logged-in");
+            println!("user called login but was already logged-in");
             return GA_ERROR;
         } else {
-            // Here we silently do nothing because the user is already logged in.
-            // This happens when a user calls register.
+            return GA_OK;
         }
-    } else {
-        debug!("GA_login({}) {:?}", mnemonic, sess);
-        let network = tryit!(sess.network.as_ref().or_err("session not connected"));
-        // sess.wallet = Some(tryit!(Wallet::login(network, &mnemonic)));
     }
 
-    // tryit!(sess.hello());
+    if sess.rpc_cfg.is_none() {
+        println!("Could not login. Not connected.");
+        return GA_ERROR;
+    }
 
-    ok!(ret, GA_auth_handler::success())
+    let rpc_cfg = sess.rpc_cfg.as_ref().unwrap();
+    let mwallet = Wallet::login(&rpc_cfg, &mnemonic, None);
+    if let Err(msg) = mwallet {
+        println!("Could not login: {}", msg);
+        return GA_ERROR;
+    }
+
+    sess.wallet = Some(mwallet.unwrap());
+    // let wallet = tryit!(sess.wallet.as_ref().or_err("session not connected"));
+
+    // tryit!(sess.hello());
+    GA_OK
 }
 
 //
@@ -459,16 +471,16 @@ pub extern "C" fn GDKRPC_create_transaction(
 
 #[no_mangle]
 pub extern "C" fn GDKRPC_sign_transaction(
-    sess: *const GDKRPC_session,
+    sess: *mut GDKRPC_session,
     tx_detail_unsigned: *const GDKRPC_json,
     ret: *mut *const GA_auth_handler,
 ) -> i32 {
-    let sess = safe_ref!(sess);
+    let sess = safe_mut_ref!(sess);
     let tx_detail_unsigned = &unsafe { &*tx_detail_unsigned }.0;
 
     debug!("GA_sign_transaction() {:?}", tx_detail_unsigned);
 
-    let wallet = tryit!(sess.wallet().or_err("no loaded wallet"));
+    let wallet = tryit!(sess.wallet_mut().or_err("no loaded wallet"));
     let tx_signed = tryit!(wallet.sign_transaction(&tx_detail_unsigned));
 
     debug!("GA_sign_transaction() {:?}", tx_signed);
@@ -783,28 +795,6 @@ pub extern "C" fn GDKRPC_set_pin(
         })
     )
 }
-
-#[no_mangle]
-pub extern "C" fn GDKRPC_login_with_pin(
-    sess: *mut GDKRPC_session,
-    _pin: *const c_char,
-    pin_data: *const GDKRPC_json,
-) -> i32 {
-    let pin_data = &unsafe { &*pin_data }.0;
-    let entropy_hex = tryit!(pin_data["encrypted_data"].as_str().req()).to_string();
-    let entropy = tryit!(hex::decode(&entropy_hex));
-    let mnemonic = wally::bip39_mnemonic_from_bytes(&entropy);
-
-    debug!("GA_login_with_pin mnemonic: {}", mnemonic);
-    let sess = safe_mut_ref!(sess);
-    let network = tryit!(sess.network.as_ref().or_err("session not connected"));
-    // sess.wallet = Some(tryit!(Wallet::login(network, &mnemonic)));
-
-    // tryit!(sess.hello());
-
-    GA_OK
-}
-
 //
 // Unimplemented and GA_ERROR's
 //

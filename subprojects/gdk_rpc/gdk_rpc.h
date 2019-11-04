@@ -87,8 +87,7 @@ GDK_API int GDKRPC_register_user(
  * :param call: Destination for the resulting GA_auth_handler to perform the login.
  *|     Returned GA_auth_handler should be freed using `GA_destroy_auth_handler`.
  */
-GDK_API int GDKRPC_login(struct GDKRPC_session* session, const GDKRPC_json* hw_device, const char* mnemonic, const char* password,
-    struct GA_auth_handler** call);
+GDK_API int GDKRPC_login(struct GDKRPC_session* session, const GDKRPC_json* hw_device, const char* mnemonic, const char* password);
 
 /**
  * Authenticate a user.

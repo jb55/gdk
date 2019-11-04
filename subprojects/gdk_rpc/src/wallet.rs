@@ -13,13 +13,14 @@ use hex;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
-use std::{cell, fmt};
+use std::{fmt,cell};
 
 use bitcoin::secp256k1;
 use bitcoin::{util::bip32, Address, Network as BNetwork};
 use bitcoin_hashes::hex::{FromHex, ToHex};
 use bitcoin_hashes::sha256d;
-use bitcoincore_rpc::{json as rpcjson, Client as RpcClient, RpcApi};
+use bitcoincore_rpc::{json as rpcjson, Client as RpcClient, RpcApi, Error as RpcError};
+use jsonrpc::error::{Error as JRPCError};
 use serde_json::Value;
 
 #[cfg(feature = "liquid")]
@@ -28,7 +29,7 @@ use elements;
 use crate::coins;
 use crate::constants::{SAT_PER_BIT, SAT_PER_BTC, SAT_PER_MBTC};
 use crate::errors::{Error, OptionExt};
-use crate::network::{Network, NetworkId};
+use crate::network::{Network, NetworkId, RpcConfig};
 use crate::util::{btc_to_isat, btc_to_usat, extend, f64_from_val, fmt_time, into_err, SECP};
 
 use crate::wally;
@@ -95,6 +96,7 @@ pub struct Wallet {
     network: &'static Network,
     rpc: RpcClient,
     mnemonic: String,
+    name: Option<String>,
 
     // For the BIP32 keys, the network variable should be ignored and not used.
     /// The BIP32 master extended private key.
@@ -217,8 +219,32 @@ impl Wallet {
         (master_xpriv, external_xpriv, internal_xpriv)
     }
 
+    pub fn get_network(&self) -> &'static Network {
+        return self.network;
+    }
+
     pub fn fingerprint(&self) -> bip32::Fingerprint {
         self.master_xpriv.fingerprint(&SECP)
+    }
+
+    pub fn ensure_wallet(rpc: &RpcClient, wallet: &str) -> Result<(), bitcoincore_rpc::Error> {
+        let mloaded = rpc.load_wallet(wallet);
+        if let Err(err) = mloaded {
+            if let RpcError::JsonRpc(JRPCError::Rpc(ref rpcerr)) = err {
+                // NOTE: I'm not sure where these codes are coming from?
+                if rpcerr.code == -18 {
+                    // wallet doesn't exist
+                    let disable_private_keys = Some(true);
+                    println!("ensure_wallet: wallet {} doesn't exist, creating...", wallet);
+                    rpc.create_wallet(wallet, disable_private_keys)?;
+                } else if rpcerr.code == -4 {
+                    // wallet already exists
+                }
+            } else {
+                return Err(err);
+            }
+        }
+        Ok(())
     }
 
     pub fn logout(self) -> Result<(), Error> {
@@ -245,6 +271,41 @@ impl Wallet {
         };
         let privkey = xpriv.derive_priv(&SECP, &[child])?.private_key;
         Ok(privkey.key)
+    }
+
+    pub fn login(
+        cfg: &RpcConfig,
+        mnemonic: &str,
+        passphrase: Option<&str>,
+    ) -> Result<Wallet, Error> {
+        let seed = wally::bip39_mnemonic_to_seed(mnemonic, passphrase.unwrap_or_default())?;
+        let (master, child, internal) = Wallet::calc_xkeys(&seed);
+        let wallet = master.fingerprint(&SECP).to_hex();
+        let client = Network::connect(cfg, Some(&wallet))?;
+        Wallet::ensure_wallet(&client, &wallet)?;
+        let net = Network::get("bitcoin-mainnet").req()?;
+        let state_addr = Wallet::persistent_state_address(net.id(), &master);
+        let wallet_state = Wallet::load_persistent_state(&client, &state_addr);
+        let fresh_index = || bip32::ChildNumber::from_normal_idx(0);
+
+        let (ichild, echild) = wallet_state
+            .map(|ws| (ws.next_internal_child, ws.next_external_child))
+            .unwrap_or((fresh_index()?, fresh_index()?));
+
+        Ok(Wallet {
+            rpc: client,
+            network: net,
+            mnemonic: String::from(mnemonic),
+            name: Some(wallet),
+            tip: None,
+            last_tx: None,
+            master_xpriv: master,
+            external_xpriv: child,
+            internal_xpriv: internal,
+            next_internal_child: cell::Cell::new(ichild),
+            next_external_child: cell::Cell::new(echild),
+            cached_fees: (json!(vec![1000]), Instant::now() - FEE_ESTIMATES_TTL),
+        })
     }
 
     pub fn updates(&mut self) -> Result<Vec<Value>, Error> {
@@ -586,7 +647,7 @@ impl Wallet {
 
 impl fmt::Debug for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Wallet {{ }}")
+        write!(f, "Wallet {{ name: \"{}\" }}", self.name.as_ref().unwrap_or(&String::from("")))
     }
 }
 

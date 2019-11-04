@@ -3,7 +3,7 @@ use std::mem::transmute;
 use serde_json::Value;
 
 use crate::errors::Error;
-use crate::network::Network;
+use crate::network::{RpcConfig};
 use crate::settings::Settings;
 use crate::wallet::Wallet;
 use crate::GDKRPC_json;
@@ -12,7 +12,7 @@ use crate::GDKRPC_json;
 #[repr(C)]
 pub struct GDKRPC_session {
     pub settings: Settings,
-    pub network: Option<Network>,
+    pub rpc_cfg: Option<RpcConfig>,
     pub wallet: Option<Wallet>,
     pub notify:
         Option<(extern "C" fn(*const libc::c_void, *const GDKRPC_json), *const libc::c_void)>,
@@ -22,7 +22,7 @@ impl GDKRPC_session {
     pub fn new() -> *mut GDKRPC_session {
         let sess = GDKRPC_session {
             settings: Settings::default(),
-            network: None,
+            rpc_cfg: None,
             wallet: None,
             notify: None,
         };

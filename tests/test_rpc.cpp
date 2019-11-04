@@ -30,8 +30,9 @@ int main()
         ga::sdk::session session;
 
         session.connect(net_params);
+        session.login("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "");
         auto ret = session.get_transactions(details);
-        printf("transactions (%ld): \n%s", ret.size(), ret.dump().c_str());
+        printf("transactions (%ld): \n%s\n", ret.size(), ret.dump().c_str());
     }
 
     return 0;
