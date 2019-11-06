@@ -16,7 +16,16 @@ shift
 OBJCOPY="$1"
 shift
 
-cp -r "$SOURCE_ROOT/subprojects/gdk_rpc" "$BUILD_ROOT/subprojects"
+RPCSRC="$SOURCE_ROOT/subprojects"
+RPCDST="$BUILD_ROOT/subprojects"
+
+if [ $(command -v rsync) ]; then
+    # reminder that ending slash is required for rsyncing folders ;)
+    rsync -a "$RPCSRC/gdk_rpc/" "$RPCDST/gdk_rpc/"
+else
+    cp -r "$RPCSRC/gdk_rpc" "$RPCDST"
+fi
+
 
 export CC_i686_linux_android=i686-linux-android19-clang
 export CC_x86_64_linux_android=x86_64-linux-android21-clang
