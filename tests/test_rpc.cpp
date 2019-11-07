@@ -28,12 +28,38 @@ int main()
     {
         nlohmann::json details;
         ga::sdk::session session;
+        bool threw = false;
 
         session.connect(net_params);
         session.login("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "");
+        std::string a1 = session.get_receive_address(nlohmann::json{})["address"];
+        std::string a2 = session.get_receive_address(nlohmann::json{})["address"];
+
+        assert(a1 != a2);
+
         auto ret = session.get_transactions(details);
-        printf("transactions (%ld): \n%s\n", ret.size(), ret.dump().c_str());
+        auto tx = ret.size() > 0 ? ret[0] : ret;
+
+        printf("transactions (%ld): \n%s\naddr1: %s\naddr2: %s\n",
+               ret.size(),
+               tx.dump().c_str(),
+               a1.c_str(),
+               a2.c_str()
+               );
+
+        session.disconnect();
+        try {
+            // should fail after disconnect
+            nlohmann::json fail_addr = session.get_receive_address(nlohmann::json{});
+        }
+        catch (const std::exception& e) {
+            printf("got expected assertion failure after disconnect.\n");
+            threw = true;
+        }
+        assert(threw);
     }
+
+
 
     return 0;
 }

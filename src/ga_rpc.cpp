@@ -165,7 +165,9 @@ namespace sdk {
 
     nlohmann::json ga_rpc::get_receive_address(const nlohmann::json& details)
     {
-        throw std::runtime_error("get_receive_address not implemented");
+        GDKRPC_json* output;
+        GDKRPC_get_receive_address(m_session, gdkrpc_json(details).get(), &output);
+        return gdkrpc_json::from_serde(output);
     }
     nlohmann::json ga_rpc::get_subaccounts() { throw std::runtime_error("get_subaccounts not implemented"); }
     nlohmann::json ga_rpc::get_subaccount(uint32_t subaccount)

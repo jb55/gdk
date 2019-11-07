@@ -285,6 +285,7 @@ impl Wallet {
         Wallet::ensure_wallet(&client, &wallet)?;
         let net = Network::get("bitcoin-mainnet").req()?;
         let state_addr = Wallet::persistent_state_address(net.id(), &master);
+        debug!("state_addr {}", state_addr);
         let wallet_state = Wallet::load_persistent_state(&client, &state_addr);
         let fresh_index = || bip32::ChildNumber::from_normal_idx(0);
 
