@@ -86,9 +86,11 @@ common_link_args = [
 ]
 
 if cross_iphone_build
-  common_link_args += ['-framework Security', '-framework Foundation']
   add_project_arguments(['-miphoneos-version-min=11.0'], language : 'cpp')
   add_project_link_arguments(['-miphoneos-version-min=11.0'], language : 'cpp')
+
+  # to generate keys in gdk_rpc
+  add_project_link_arguments(['-Wl,-framework,Security'], language : 'cpp')
 endif
 
 if is_freebsd

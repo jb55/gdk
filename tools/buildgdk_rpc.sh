@@ -13,12 +13,18 @@ shift
 BUILD_ROOT="$1"
 shift
 
+OBJCOPY="$1"
+shift
+
 cp -r "$SOURCE_ROOT/subprojects/gdk_rpc" "$BUILD_ROOT/subprojects"
 
 export CC_i686_linux_android=i686-linux-android19-clang
 export CC_x86_64_linux_android=x86_64-linux-android21-clang
 export CC_armv7_linux_androideabi=armv7a-linux-androideabi19-clang
 export CC_aarch64_linux_android=aarch64-linux-android21-clang
+
+OUT_LIB_FILE="libgdk_rpc.a"
+LD_ARCH="-arch x86_64 -platform_version macos 10.8 10.8"
 
 cd "$BUILD_ROOT/subprojects/gdk_rpc"
 
@@ -42,10 +48,13 @@ if [ \( "$1" = "--ndk" \) ]; then
     fi
 elif [ \( "$1" = "--windows" \) ]; then
     RUSTTARGET=x86_64-pc-windows-gnu
+    OUT_LIB_FILE="gdk_rpc.lib"
 elif [ \( "$1" = "--iphone" \) ]; then
     RUSTTARGET=aarch64-apple-ios
+    LD_ARCH="-arch arm64 -platform_version ios 11.0 11.0"
 elif [ \( "$1" = "--iphonesim" \) ]; then
     RUSTTARGET=x86_64-apple-ios
+    LD_ARCH="-arch x86_64 -platform_version ios-simulator 11.0 11.0"
 fi
 
 CARGO_ARGS=()
@@ -61,15 +70,19 @@ printf "cargo args: ${CARGO_ARGS[*]}\n"
 cargo build "${CARGO_ARGS[@]}"
 
 if [ -z "$RUSTTARGET" ]; then
-    cp "target/${BUILDTYPE}/libgdk_rpc.a" "${BUILD_ROOT}/$OUTPUT"
+    cp "target/${BUILDTYPE}/${OUT_LIB_FILE}" "${BUILD_ROOT}/$OUTPUT"
 else
     mkdir -p "target/${BUILDTYPE}"
-    cp "target/${RUSTTARGET}/$BUILDTYPE/libgdk_rpc.a" "${BUILD_ROOT}/$OUTPUT"
+    cp "target/${RUSTTARGET}/$BUILDTYPE/${OUT_LIB_FILE}" "${BUILD_ROOT}/$OUTPUT"
 fi
 
+APPLE_KEEP="${SOURCE_ROOT}/subprojects/gdk_rpc/apple-exported-symbols"
 KEEP="${SOURCE_ROOT}/subprojects/gdk_rpc/exported-symbols"
 WEAKEN="${SOURCE_ROOT}/subprojects/gdk_rpc/weaken-symbols"
 
-if [ $(command -v objcopy) ]; then
-    objcopy --strip-unneeded --keep-symbols="$KEEP" --weaken-symbols="$WEAKEN" "${BUILD_ROOT}/$OUTPUT"
+if [ -z "${OBJCOPY}" ]; then
+    # on Darwin we use ld to hide all the unnecessary symbols (mostly secp256k1 stuff)
+    ld ${LD_ARCH} -o "${BUILD_ROOT}/$OUTPUT" -r -exported_symbols_list "$APPLE_KEEP" "${BUILD_ROOT}/$OUTPUT"
+else
+    $OBJCOPY --strip-unneeded --keep-symbols="$KEEP" --weaken-symbols="$WEAKEN" "${BUILD_ROOT}/$OUTPUT"
 fi

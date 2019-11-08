@@ -3,6 +3,7 @@ project('gdk_rpc', 'c', meson_version : '>= 0.51.2')
 message('Building gdk_rpc...')
 
 cargo_script = find_program(join_paths(meson.source_root(), 'tools', 'buildgdk_rpc.sh'))
+objcopy = find_program('objcopy', required : false)
 
 run_cmd_args = [cargo_script]
 
@@ -15,6 +16,12 @@ endif
 run_cmd_args += ['@OUTPUT@']
 run_cmd_args += [meson.source_root()]
 run_cmd_args += [meson.build_root()]
+
+if objcopy.found()
+    run_cmd_args += [objcopy]
+else
+    run_cmd_args += ['']
+endif
 
 target_os = meson.get_cross_property('target_os', '')
 if target_os != ''
