@@ -345,6 +345,37 @@ pub extern "C" fn GDKRPC_login(
 }
 
 //
+// Subaccounts
+//
+
+#[no_mangle]
+pub extern "C" fn GDKRPC_get_subaccounts(
+    sess: *const GDKRPC_session,
+    ret: *mut *const GDKRPC_json,
+) -> i32 {
+    let sess = safe_ref!(sess);
+
+    let wallet = tryit!(sess.wallet().or_err("no loaded wallet"));
+    let account = tryit!(wallet.get_account());
+
+    ok_json!(ret, vec![account])
+}
+
+#[no_mangle]
+pub extern "C" fn GDKRPC_get_subaccount(
+    sess: *const GDKRPC_session,
+    _index: u32, // Ignored atm
+    ret: *mut *const GDKRPC_json,
+) -> i32 {
+    let sess = safe_ref!(sess);
+
+    let wallet = tryit!(sess.wallet().or_err("no loaded wallet"));
+    let account = tryit!(wallet.get_account());
+
+    ok_json!(ret, account)
+}
+
+//
 // Transactions & Coins
 //
 

@@ -347,6 +347,10 @@ GDK_API int GDKRPC_convert_json_value_to_bool(const GDKRPC_json* json, const cha
 
 GDK_API int GDKRPC_convert_json_value_to_json(const GDKRPC_json* json, const char* path, GDKRPC_json** output);
 
+GDK_API int GDKRPC_get_subaccounts(struct GDKRPC_session* session, GDKRPC_json** balance);
+
+GDK_API int GDKRPC_get_subaccount(struct GDKRPC_session* session, uint32_t index, GDKRPC_json** balance);
+
 /**
  * Free a GDKRPC_json object.
  *

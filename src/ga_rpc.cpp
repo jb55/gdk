@@ -169,11 +169,21 @@ namespace sdk {
         GDKRPC_get_receive_address(m_session, gdkrpc_json(details).get(), &output);
         return gdkrpc_json::from_serde(output);
     }
-    nlohmann::json ga_rpc::get_subaccounts() { throw std::runtime_error("get_subaccounts not implemented"); }
+
+    nlohmann::json ga_rpc::get_subaccounts()
+    {
+        GDKRPC_json* output;
+        GDKRPC_get_subaccounts(m_session, &output);
+        return gdkrpc_json::from_serde(output);
+    }
+
     nlohmann::json ga_rpc::get_subaccount(uint32_t subaccount)
     {
-        throw std::runtime_error("get_subaccount not implemented");
+        GDKRPC_json* output;
+        GDKRPC_get_subaccount(m_session, subaccount, &output);
+        return gdkrpc_json::from_serde(output);
     }
+
     void ga_rpc::rename_subaccount(uint32_t subaccount, const std::string& new_name)
     {
         throw std::runtime_error("rename_subaccount not implemented");
@@ -181,7 +191,9 @@ namespace sdk {
 
     nlohmann::json ga_rpc::get_balance(const nlohmann::json& details)
     {
-        throw std::runtime_error("get_balance not implemented");
+        GDKRPC_json* output;
+        GDKRPC_get_balance(m_session, gdkrpc_json(details).get(), &output);
+        return gdkrpc_json::from_serde(output);
     }
     nlohmann::json ga_rpc::get_available_currencies() const
     {
