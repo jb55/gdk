@@ -344,7 +344,9 @@ namespace sdk {
 
     nlohmann::json ga_rpc::convert_amount(const nlohmann::json& amount_json) const
     {
-        throw std::runtime_error("convert_amount not implemented");
+        GDKRPC_json* output;
+        GDKRPC_convert_amount(m_session, gdkrpc_json(amount_json).get(), &output);
+        return gdkrpc_json::from_serde(output);
     }
 
     amount ga_rpc::get_min_fee_rate() const { throw std::runtime_error("get_min_fee_rate not implemented"); }

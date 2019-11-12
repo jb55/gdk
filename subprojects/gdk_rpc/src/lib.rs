@@ -423,6 +423,8 @@ pub extern "C" fn GDKRPC_get_balance(
     let wallet = tryit!(sess.wallet().or_err("no loaded wallet"));
     let balance = tryit!(wallet.get_balance(&details));
 
+    debug!("get_balance: {:?}", balance);
+
     ok_json!(ret, balance)
 }
 

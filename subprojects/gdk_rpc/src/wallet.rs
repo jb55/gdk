@@ -354,16 +354,14 @@ impl Wallet {
     pub fn get_account(&self) -> Result<Value, Error> {
         let has_transactions = self._get_transactions(1, 0)?.1;
 
-        extend(
-            json!({
-                "type": "core",
-                "pointer": 0,
-                "receiving_id": "",
-                "name": "RPC wallet",
-                "has_transactions": has_transactions,
-            }),
-            self._get_balance(0)?,
-        )
+        Ok(json!({
+            "type": "core",
+            "pointer": 0,
+            "receiving_id": "",
+            "name": "RPC wallet",
+            "has_transactions": has_transactions,
+            "satoshi": self._get_balance(0)?
+        }))
     }
 
     pub fn get_balance(&self, details: &Value) -> Result<Value, Error> {
@@ -386,7 +384,7 @@ impl Wallet {
         }
 
         let balance: f64 = self.rpc.call("getbalance", &args)?;
-        Ok(self._convert_satoshi(btc_to_usat(balance)))
+        Ok(json!({ "btc": btc_to_usat(balance) }))
     }
 
     pub fn get_transactions(&self, details: &Value) -> Result<Value, Error> {
@@ -629,15 +627,16 @@ impl Wallet {
         let amount_f = amount as f64;
 
         json!({
-            "satoshi": amount.to_string(),
-            "bits": (amount_f / SAT_PER_BIT).to_string(),
-            "ubtc": (amount_f / SAT_PER_BIT).to_string(), // XXX why twice? same as bits
-            "mbtc": (amount_f / SAT_PER_MBTC).to_string(),
-            "btc": (amount_f / SAT_PER_BTC).to_string(),
+            "satoshi": amount,
+            "sats": amount.to_string(),
+            "bits": format!("{:.2}", (amount_f / SAT_PER_BIT)),
+            "ubtc": format!("{:.2}", (amount_f / SAT_PER_BIT)), // XXX why twice? same as bits
+            "mbtc": format!("{:.5}", (amount_f / SAT_PER_MBTC)),
+            "btc": format!("{:.8}", (amount_f / SAT_PER_BTC)),
 
-            "fiat_rate": (exchange_rate).to_string(),
+            "fiat_rate": format!("{:.8}", exchange_rate),
             "fiat_currency": currency,
-            "fiat": (amount_f / SAT_PER_BTC * exchange_rate).to_string(),
+            "fiat": format!("{:.2}", (amount_f / SAT_PER_BTC * exchange_rate)),
         })
     }
 
