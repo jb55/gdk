@@ -27,3 +27,5 @@ docs/build
 .pytest_cache/
 *.pyc
 *PVS-Studio*
+/TAGS
+/tor
