@@ -68,16 +68,16 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 
 static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_networks = {
     { "localtest",
-        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "Localtest" }, { "network", "localtest" },
-            { "wamp_url", "ws://localhost:8080/v2/ws" }, { "wamp_onion_url", std::string() },
-            { "wamp_cert_pins", nlohmann::json::array() },
-            { "wamp_cert_roots", std::vector<std::string>{ IDENTX3, LEX1 } }, { "address_explorer_url", std::string() },
-            { "tx_explorer_url", std::string() },
-            { "service_pubkey", "036307e560072ed6ce0aa5465534fb5c258a2ccfbc257f369e8e7a181b16d897b3" },
-            { "service_chain_code", "b60befcc619bb1c212732770fe181f2f1aa824ab89f8aab49f2e13e3a56f0f04" },
-            { "default_peers", nlohmann::json::array() }, { "p2pkh_version", 111u }, { "p2sh_version", 196u },
-            { "bech32_prefix", "bcrt" }, { "mainnet", false }, { "liquid", false }, { "development", true },
-            { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } } })) },
+        std::make_shared<nlohmann::json>(nlohmann::json(
+            { { "name", "Localtest" }, { "network", "localtest" }, { "wamp_url", "ws://localhost:8080/v2/ws" },
+                { "wamp_onion_url", std::string() }, { "wamp_cert_pins", nlohmann::json::array() },
+                { "wamp_cert_roots", std::vector<std::string>{ IDENTX3, LEX1 } },
+                { "address_explorer_url", std::string() }, { "tx_explorer_url", std::string() },
+                { "service_pubkey", "036307e560072ed6ce0aa5465534fb5c258a2ccfbc257f369e8e7a181b16d897b3" },
+                { "service_chain_code", "b60befcc619bb1c212732770fe181f2f1aa824ab89f8aab49f2e13e3a56f0f04" },
+                { "default_peers", nlohmann::json::array() }, { "p2pkh_version", 111u }, { "p2sh_version", 196u },
+                { "bech32_prefix", "bcrt" }, { "mainnet", false }, { "liquid", false }, { "development", true },
+                { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } }, { "rpc", false } })) },
 
     { "liquid",
         std::make_shared<nlohmann::json>(nlohmann::json(
@@ -97,7 +97,7 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
                 { "bech32_prefix", "lq" }, { "mainnet", true }, { "liquid", true }, { "development", false },
                 { "policy_asset", "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d" },
                 { "blinded_prefix", 12u }, { "ct_exponent", 0 }, { "ct_bits", 36 },
-                { "csv_buckets", std::vector<uint32_t>{ 25920, 51840, 65535 } } })) },
+                { "csv_buckets", std::vector<uint32_t>{ 25920, 51840, 65535 } }, { "rpc", false } })) },
 
     { "localtest-liquid",
         std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "Localtest Liquid" },
@@ -112,7 +112,7 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
             { "bech32_prefix", "tb" }, { "mainnet", false }, { "liquid", true }, { "development", true },
             { "policy_asset", "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225" },
             { "blinded_prefix", 4u }, { "ct_exponent", 0 }, { "ct_bits", 36 },
-            { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 25920, 51840, 65535 } } })) },
+            { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 25920, 51840, 65535 } }, { "rpc", false } })) },
 
     { "mainnet",
         std::make_shared<nlohmann::json>(nlohmann::json(
@@ -128,7 +128,7 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
                 { "service_chain_code", "e9a563d68686999af372a33157209c6860fe79197a4dafd9ec1dbaa49523351d" },
                 { "default_peers", nlohmann::json::array() }, { "p2pkh_version", 0u }, { "p2sh_version", 5u },
                 { "bech32_prefix", "bc" }, { "mainnet", true }, { "liquid", false }, { "development", false },
-                { "csv_buckets", std::vector<uint32_t>{ 25920, 51840, 65535 } } })) },
+                { "csv_buckets", std::vector<uint32_t>{ 25920, 51840, 65535 } }, { "rpc", false } })) },
 
     { "testnet",
         std::make_shared<nlohmann::json>(nlohmann::json(
@@ -144,7 +144,7 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
                 { "service_chain_code", "b60befcc619bb1c212732770fe181f2f1aa824ab89f8aab49f2e13e3a56f0f04" },
                 { "default_peers", nlohmann::json::array() }, { "p2pkh_version", 111u }, { "p2sh_version", 196u },
                 { "bech32_prefix", "tb" }, { "mainnet", false }, { "liquid", false }, { "development", false },
-                { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } } })) },
+                { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } }, { "rpc", false } })) },
 
     { "regtest",
         std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "Regtest" }, { "network", "regtest" },
@@ -156,7 +156,12 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
             { "service_chain_code", "b60befcc619bb1c212732770fe181f2f1aa824ab89f8aab49f2e13e3a56f0f04" },
             { "default_peers", std::vector<std::string>{ { "192.168.56.1:19000" } } }, { "p2pkh_version", 111u },
             { "p2sh_version", 196u }, { "bech32_prefix", "bcrt" }, { "mainnet", false }, { "liquid", false },
-            { "development", true }, { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } } })) }
+            { "development", true }, { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } },
+            { "rpc", false } })) },
+
+    { "rpc-mainnet",
+        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Mainnet" }, { "network", "bitcoin-mainnet" },
+            { "mainnet", true }, { "liquid", false }, { "development", false }, { "rpc", true } })) }
 };
 
 static std::mutex registered_networks_mutex;

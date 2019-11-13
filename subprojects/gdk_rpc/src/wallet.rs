@@ -388,14 +388,12 @@ impl Wallet {
     }
 
     pub fn get_transactions(&self, details: &Value) -> Result<Value, Error> {
-        let page = details["page_id"].as_u64().req()? as usize;
-        let (txs, potentially_has_more) = self._get_transactions(PER_PAGE, PER_PAGE * page)?;
+        let first = details["first"].as_u64().req().unwrap_or(0) as usize;
+        let count = details["count"].as_u64().req().unwrap_or(PER_PAGE as u64) as usize;
 
-        Ok(json!({
-            "list": txs,
-            "page_id": page,
-            "next_page_id": if potentially_has_more { Some(page+1) } else { None },
-        }))
+        let (txs, _potentially_has_more) = self._get_transactions(count, first)?;
+
+        Ok(json!(txs))
     }
 
     fn _get_transactions(&self, limit: usize, start: usize) -> Result<(Vec<Value>, bool), Error> {
@@ -547,11 +545,7 @@ impl Wallet {
     pub fn get_fee_estimates(&self) -> Option<&Value> {
         // will not be available before the first "tick", which should
         // happen as soon as GA_connect initializes the wallet
-        if self.cached_fees.0.is_null() {
-            None
-        } else {
-            Some(&self.cached_fees.0)
-        }
+        Some(&self.cached_fees.0)
     }
     pub fn _make_fee_estimates(&self) -> Result<Value, Error> {
         let mempoolinfo: Value = self.rpc.call("getmempoolinfo", &[])?;
@@ -735,7 +729,7 @@ fn format_gdk_tx(txdesc: &Value, raw_tx: &[u8], network: NetworkId) -> Result<Va
         "txhash": txid.to_hex(),
         "transaction": hex::encode(&raw_tx),
 
-        "satoshi": amount,
+        "satoshi": json!({"btc": amount}),
 
         "rbf_optin": rbf_optin,
         "cap_cpfp": false, // TODO

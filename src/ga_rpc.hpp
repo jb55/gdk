@@ -185,8 +185,11 @@ namespace sdk {
         void disable_all_pin_logins();
 
     private:
+        static void gdkrpc_notif_handler(void* self_context, void* context, GDKRPC_json* json);
+
         gdkrpc_json m_netparams;
         GDKRPC_session* m_session;
+        GA_notification_handler m_ga_notif_handler;
     };
 
 } // namespace sdk

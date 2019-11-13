@@ -15,7 +15,7 @@ pub struct GDKRPC_session {
     pub rpc_cfg: Option<RpcConfig>,
     pub wallet: Option<Wallet>,
     pub notify:
-        Option<(extern "C" fn(*const libc::c_void, *const GDKRPC_json), *const libc::c_void)>,
+        Option<(extern "C" fn(*const libc::c_void, *const libc::c_void, *const GDKRPC_json), *const libc::c_void, *const libc::c_void)>,
 }
 
 impl GDKRPC_session {
@@ -54,8 +54,8 @@ impl GDKRPC_session {
 
     pub fn notify(&self, data: Value) {
         debug!("push notification: {:?}", data);
-        if let Some((handler, context)) = self.notify {
-            handler(context, GDKRPC_json::new(data));
+        if let Some((handler, self_context, context)) = self.notify {
+            handler(self_context, context, GDKRPC_json::new(data));
         } else {
             warn!("no registered handler to receive notification");
         }

@@ -340,7 +340,8 @@ pub extern "C" fn GDKRPC_login(
     sess.wallet = Some(mwallet.unwrap());
     // let wallet = tryit!(sess.wallet.as_ref().or_err("session not connected"));
 
-    // tryit!(sess.hello());
+    tryit!(sess.hello());
+
     GA_OK
 }
 
@@ -653,11 +654,14 @@ pub extern "C" fn GDKRPC_get_fee_estimates(
 #[no_mangle]
 pub extern "C" fn GDKRPC_set_notification_handler(
     sess: *mut GDKRPC_session,
-    handler: extern "C" fn(*const libc::c_void, *const GDKRPC_json),
+    handler: extern "C" fn(*const libc::c_void, *const libc::c_void, *const GDKRPC_json),
+    self_context: *const libc::c_void,
     context: *const libc::c_void,
 ) -> i32 {
     let sess = safe_mut_ref!(sess);
-    sess.notify = Some((handler, context));
+    sess.notify = Some((handler, self_context, context));
+
+    println!("set notification handler");
 
     GA_OK
 }
@@ -787,7 +791,7 @@ pub extern "C" fn GDKRPC_destroy_string(ptr: *mut c_char) -> i32 {
 //
 
 #[no_mangle]
-pub extern "C" fn GDKRPC_get_twofactor_config(
+pub extern "C" fn GDKRPC_get_twofactor_config( // TODO: move in the cpp since it's hardcoded?
     _sess: *const GDKRPC_session,
     ret: *mut *const GDKRPC_json,
 ) -> i32 {
