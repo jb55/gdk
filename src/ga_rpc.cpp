@@ -38,10 +38,10 @@ namespace sdk {
         }
     }
 
-    ga_rpc::ga_rpc(const nlohmann::json& net_params)
+    ga_rpc::ga_rpc(const nlohmann::json& net_params, const nlohmann::json& networks)
         : m_netparams(net_params)
     {
-        GDKRPC_create_session(&m_session);
+        GDKRPC_create_session(&m_session, gdkrpc_json(networks).get());
     }
 
     ga_rpc::~ga_rpc()

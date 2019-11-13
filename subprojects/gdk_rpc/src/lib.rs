@@ -48,6 +48,7 @@ pub mod wally;
 use serde_json::{from_value, Value};
 
 use bitcoincore_rpc::RpcApi;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::mem::transmute;
 use std::os::raw::c_char;
@@ -159,8 +160,12 @@ macro_rules! safe_mut_ref {
 //
 
 #[no_mangle]
-pub extern "C" fn GDKRPC_get_networks(ret: *mut *const GDKRPC_json) -> i32 {
-    let networks = Network::list();
+pub extern "C" fn GDKRPC_get_networks(
+    sess_: *const GDKRPC_session,
+    ret: *mut *const GDKRPC_json,
+) -> i32 {
+    let sess = &safe_ref!(sess_);
+    let networks = &sess.networks;
     let names: Vec<String> = networks.keys().cloned().collect();
 
     let mut networks = json!(networks);
@@ -177,13 +182,35 @@ pub extern "C" fn GDKRPC_get_networks(ret: *mut *const GDKRPC_json) -> i32 {
 static INIT_LOGGER: Once = ONCE_INIT;
 
 #[no_mangle]
-pub extern "C" fn GDKRPC_create_session(ret: *mut *const GDKRPC_session) -> i32 {
+pub extern "C" fn GDKRPC_create_session(
+    ret: *mut *const GDKRPC_session,
+    networks: *const GDKRPC_json,
+) -> i32 {
     debug!("GA_create_session()");
 
     #[cfg(feature = "android_logger")]
     INIT_LOGGER.call_once(|| android_log::init("gdk_rpc").unwrap());
 
-    let sess = GDKRPC_session::new();
+    let networks = &safe_ref!(networks).0;
+    let mut rpc_networks: HashMap<String, Network> = HashMap::new();
+
+    if !networks.is_object() {
+        println!("Expected networks to be an object");
+        return GA_ERROR;
+    }
+
+    for (k, network) in networks.as_object().unwrap().iter() {
+        if network.get("rpc").and_then(|v| v.as_bool()).unwrap_or(false) {
+            let parsed_network = serde_json::from_value(network.clone());
+            if let Err(msg) = parsed_network {
+                println!("Error parsing network '{}': {}", k, msg);
+                return GA_ERROR;
+            }
+            rpc_networks.insert(k.into(), parsed_network.unwrap());
+        }
+    }
+
+    let sess = GDKRPC_session::new(rpc_networks);
 
     ok!(ret, sess)
 }
@@ -211,9 +238,11 @@ fn json_to_rpc_config(val: &Value) -> Option<RpcConfig> {
     let url = obj_string(val, "rpc_url")?;
     let user = obj_string(val, "username")?;
     let pass = obj_string(val, "password")?;
+    let network = obj_string(val, "name")?;
     let msocks5 = obj_string(val, "socks5");
     Some(RpcConfig {
         url,
+        network,
         cred: Some((user, pass)),
         socks5: msocks5,
         cookie: None,
@@ -327,7 +356,7 @@ pub extern "C" fn GDKRPC_login(
     }
 
     let rpc_cfg = sess.rpc_cfg.as_ref().unwrap();
-    let mwallet = Wallet::login(&rpc_cfg, &mnemonic, None);
+    let mwallet = Wallet::login(&sess.networks, &rpc_cfg, &mnemonic, None);
     if let Err(msg) = mwallet {
         println!("Could not login: {}", msg);
         return GA_NOT_AUTHORIZED;

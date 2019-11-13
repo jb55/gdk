@@ -46,7 +46,7 @@ namespace sdk {
     public:
         ~ga_rpc();
 
-        explicit ga_rpc(const nlohmann::json& net_params);
+        explicit ga_rpc(const nlohmann::json& net_params, const nlohmann::json& networks);
 
         void on_failed_login();
 

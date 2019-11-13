@@ -160,8 +160,27 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
             { "rpc", false } })) },
 
     { "rpc-mainnet",
-        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Mainnet" }, { "network", "bitcoin-mainnet" },
-            { "mainnet", true }, { "liquid", false }, { "development", false }, { "rpc", true } })) }
+        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Mainnet" }, { "network", "rpc-mainnet" },
+            { "address_explorer_url", "https://blockstream.info/address/" },
+            { "tx_explorer_url", "https://blockstream.info/tx/" }, { "p2pkh_version", 0u }, { "p2sh_version", 5u },
+            { "bech32_prefix", "bc" }, { "mainnet", true }, { "liquid", false }, { "development", false },
+            { "rpc", true } })) },
+
+    { "rpc-testnet",
+        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Testnet" }, { "network", "rpc-testnet" },
+            { "wamp_url", "wss://testwss.greenaddress.it/v2/ws" },
+            { "address_explorer_url", "https://blockstream.info/testnet/address/" },
+            { "tx_explorer_url", "https://blockstream.info/testnet/tx/" }, { "p2pkh_version", 111u },
+            { "p2sh_version", 196u }, { "bech32_prefix", "tb" }, { "mainnet", false }, { "liquid", false },
+            { "development", false }, { "rpc", true } })) },
+
+    { "rpc-regtest",
+        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Regtest" }, { "network", "rpc-regtest" },
+            { "address_explorer_url", "http://192.168.56.1:8080/address/" },
+            { "tx_explorer_url", "http://192.168.56.1:8080/tx/" }, { "p2pkh_version", 111u }, { "p2sh_version", 196u },
+            { "bech32_prefix", "bcrt" }, { "mainnet", false }, { "liquid", false }, { "development", true },
+            { "rpc", true } })) },
+
 };
 
 static std::mutex registered_networks_mutex;

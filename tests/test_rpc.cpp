@@ -12,26 +12,32 @@ int main()
 
     const char *username = getenv("BITCOIN_RPCUSER");
     const char *password = getenv("BITCOIN_RPCPASS");
-    const char *wallet = getenv("BITCOIN_RPCWALLET");
+    const char *rpcport = getenv("BITCOIN_RPCPORT");
+    const char *mnemonic = getenv("BITCOIN_MNEMONIC");
+
+    if (rpcport == nullptr)
+        rpcport = "18332";
+
+    if (mnemonic == nullptr)
+        mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     nlohmann::json net_params;
     net_params["log_level"] = "debug";
     net_params["use_tor"] = false;
-    net_params["rpc_url"] = "http://localhost:14331";
+    net_params["rpc_url"] = "http://localhost:" + std::string(rpcport);
     net_params["username"] = username? username : "username";
     net_params["password"] = password? password : "password";
     // net_params["proxy"] = "localhost:9050";
-    net_params["name"] = "bitcoin-mainnet";
-    net_params["wallet"] = wallet? wallet : "";
+    net_params["name"] = "rpc-testnet";
 
     ga::sdk::init(init_config);
     {
         nlohmann::json details;
         ga::sdk::session session;
-        bool threw = false;
 
         session.connect(net_params);
-        session.login("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "");
+        session.login(mnemonic, "");
+
         std::string a1 = session.get_receive_address(nlohmann::json{})["address"];
         std::string a2 = session.get_receive_address(nlohmann::json{})["address"];
 
@@ -47,16 +53,11 @@ int main()
                a2.c_str()
                );
 
-        session.disconnect();
-        try {
-            // should fail after disconnect
-            nlohmann::json fail_addr = session.get_receive_address(nlohmann::json{});
-        }
-        catch (const std::exception& e) {
-            printf("got expected assertion failure after disconnect.\n");
-            threw = true;
-        }
-        assert(threw);
+        nlohmann::json balance_details;
+        balance_details["num_confs"] = 0;
+        auto res = session.get_balance(balance_details);
+
+        printf("balance %s\n", res.dump().c_str());
     }
 
 

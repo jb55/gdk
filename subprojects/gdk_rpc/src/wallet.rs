@@ -93,7 +93,7 @@ struct PersistentWalletState {
 }
 
 pub struct Wallet {
-    network: &'static Network,
+    network: Network,
     rpc: RpcClient,
     mnemonic: String,
     name: Option<String>,
@@ -219,8 +219,8 @@ impl Wallet {
         (master_xpriv, external_xpriv, internal_xpriv)
     }
 
-    pub fn get_network(&self) -> &'static Network {
-        self.network
+    pub fn get_network(&self) -> &Network {
+        &self.network
     }
 
     pub fn fingerprint(&self) -> bip32::Fingerprint {
@@ -274,6 +274,7 @@ impl Wallet {
     }
 
     pub fn login(
+        networks: &HashMap<String, Network>,
         cfg: &RpcConfig,
         mnemonic: &str,
         passphrase: Option<&str>,
@@ -283,7 +284,7 @@ impl Wallet {
         let wallet = master.fingerprint(&SECP).to_hex();
         let client = Network::connect(cfg, Some(&wallet))?;
         Wallet::ensure_wallet(&client, &wallet)?;
-        let net = Network::get("bitcoin-mainnet").req()?;
+        let net = networks.get(&cfg.network).req()?;
         let state_addr = Wallet::persistent_state_address(net.id(), &master);
         debug!("state_addr {}", state_addr);
         let wallet_state = Wallet::load_persistent_state(&client, &state_addr);
@@ -295,7 +296,7 @@ impl Wallet {
 
         Ok(Wallet {
             rpc: client,
-            network: net,
+            network: net.clone(),
             mnemonic: String::from(mnemonic),
             name: Some(wallet),
             tip: None,

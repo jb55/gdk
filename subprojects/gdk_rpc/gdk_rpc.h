@@ -37,7 +37,7 @@ typedef void (*GDKRPC_notification_handler)(void *self_context, GDKRPC_json* det
  * :param session: Destination for the resulting session.
  *|     Returned session should be freed using `GA_destroy_session`.
  */
-GDK_API int GDKRPC_create_session(struct GDKRPC_session** session);
+GDK_API int GDKRPC_create_session(struct GDKRPC_session** session, GDKRPC_json *networks);
 
 /**
  * Free a session allocated by `GA_create_session`.
@@ -389,7 +389,7 @@ GDK_API int GDKRPC_register_network(const char* name, const GDKRPC_json* network
  * :param output: Destination for the :ref:`networks-list`
  *|     Returned GDKRPC_json should be freed using `GA_destroy_json`.
  */
-GDK_API int GDKRPC_get_networks(GDKRPC_json** output);
+GDK_API int GDKRPC_get_networks(struct GDKRPC_session* session, GDKRPC_json** output);
 
 #ifdef __cplusplus
 } /* extern "C" */

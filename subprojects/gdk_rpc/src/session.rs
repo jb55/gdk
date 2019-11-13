@@ -3,26 +3,30 @@ use std::mem::transmute;
 use serde_json::Value;
 
 use crate::errors::Error;
-use crate::network::RpcConfig;
+use crate::network::{Network, RpcConfig};
 use crate::settings::Settings;
 use crate::wallet::Wallet;
 use crate::GDKRPC_json;
+
+use std::collections::HashMap;
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct GDKRPC_session {
     pub settings: Settings,
     pub rpc_cfg: Option<RpcConfig>,
+    pub networks: HashMap<String, Network>,
     pub wallet: Option<Wallet>,
     pub notify:
         Option<(extern "C" fn(*const libc::c_void, *const GDKRPC_json), *const libc::c_void)>,
 }
 
 impl GDKRPC_session {
-    pub fn new() -> *mut GDKRPC_session {
+    pub fn new(networks: HashMap<String, Network>) -> *mut GDKRPC_session {
         let sess = GDKRPC_session {
             settings: Settings::default(),
             rpc_cfg: None,
+            networks: networks,
             wallet: None,
             notify: None,
         };
