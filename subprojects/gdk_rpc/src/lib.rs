@@ -47,10 +47,10 @@ pub mod wally;
 
 use serde_json::{from_value, Value};
 
+use bitcoincore_rpc::RpcApi;
 use std::ffi::CString;
 use std::mem::transmute;
 use std::os::raw::c_char;
-use bitcoincore_rpc::RpcApi;
 
 #[cfg(feature = "android_logger")]
 use std::sync::{Once, ONCE_INIT};
@@ -58,9 +58,9 @@ use std::sync::{Once, ONCE_INIT};
 use crate::constants::{GA_ERROR, GA_MEMO_USER, GA_OK};
 use crate::errors::OptionExt;
 use crate::network::{Network, RpcConfig};
-use crate::wallet::Wallet;
 use crate::session::GDKRPC_session;
 use crate::util::{extend, log_filter, make_str, read_str};
+use crate::wallet::Wallet;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -207,17 +207,13 @@ fn obj_str<'a>(val: &'a Value, key: &str) -> Option<&'a str> {
     val.get(key).and_then(|v| v.as_str())
 }
 
-fn obj_bool(val: &Value, key: &str) -> Option<bool> {
-    val.get(key).and_then(|v| v.as_bool())
-}
-
 fn json_to_rpc_config(val: &Value) -> Option<RpcConfig> {
     let url = obj_string(val, "rpc_url")?;
     let user = obj_string(val, "username")?;
     let pass = obj_string(val, "password")?;
     let msocks5 = obj_string(val, "socks5");
     Some(RpcConfig {
-        url: url,
+        url,
         cred: Some((user, pass)),
         socks5: msocks5,
         cookie: None,
@@ -791,7 +787,8 @@ pub extern "C" fn GDKRPC_destroy_string(ptr: *mut c_char) -> i32 {
 //
 
 #[no_mangle]
-pub extern "C" fn GDKRPC_get_twofactor_config( // TODO: move in the cpp since it's hardcoded?
+pub extern "C" fn GDKRPC_get_twofactor_config(
+    // TODO: move in the cpp since it's hardcoded?
     _sess: *const GDKRPC_session,
     ret: *mut *const GDKRPC_json,
 ) -> i32 {

@@ -13,14 +13,14 @@ use hex;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
-use std::{fmt,cell};
+use std::{cell, fmt};
 
 use bitcoin::secp256k1;
 use bitcoin::{util::bip32, Address, Network as BNetwork};
 use bitcoin_hashes::hex::{FromHex, ToHex};
 use bitcoin_hashes::sha256d;
-use bitcoincore_rpc::{json as rpcjson, Client as RpcClient, RpcApi, Error as RpcError};
-use jsonrpc::error::{Error as JRPCError};
+use bitcoincore_rpc::{json as rpcjson, Client as RpcClient, Error as RpcError, RpcApi};
+use jsonrpc::error::Error as JRPCError;
 use serde_json::Value;
 
 #[cfg(feature = "liquid")]
@@ -220,7 +220,7 @@ impl Wallet {
     }
 
     pub fn get_network(&self) -> &'static Network {
-        return self.network;
+        self.network
     }
 
     pub fn fingerprint(&self) -> bip32::Fingerprint {
@@ -672,7 +672,8 @@ fn find_memo_in_desc(txid: &sha256d::Hash, txdesc: &Value) -> Result<String, Err
 }
 
 fn format_gdk_tx(txdesc: &Value, raw_tx: &[u8], network: NetworkId) -> Result<Value, Error> {
-    let txid: sha256d::Hash = sha256d::Hash::from_hex(txdesc["txid"].as_str().req()?).map_err(into_err)?;
+    let txid: sha256d::Hash =
+        sha256d::Hash::from_hex(txdesc["txid"].as_str().req()?).map_err(into_err)?;
     //TODO(stevenroose) optimize with Amount
     let amount = match network {
         NetworkId::Elements(..) => btc_to_isat(match txdesc["amount"] {
