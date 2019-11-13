@@ -203,7 +203,14 @@ namespace sdk {
 
     bool ga_rpc::is_rbf_enabled() const { throw std::runtime_error("is_rbf_enabled not implemented"); }
     bool ga_rpc::is_watch_only() const { throw std::runtime_error("is_watch_only not implemented"); }
-    nlohmann::json ga_rpc::get_settings() { throw std::runtime_error("get_settings not implemented"); }
+
+    nlohmann::json ga_rpc::get_settings()
+    {
+        GDKRPC_json* output;
+        GDKRPC_get_settings(m_session, &output);
+        return gdkrpc_json::from_serde(output);
+    }
+
     void ga_rpc::change_settings(const nlohmann::json& settings)
     {
         throw std::runtime_error("change_settings not implemented");
