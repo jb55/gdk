@@ -281,7 +281,11 @@ impl Wallet {
     }
 
     pub fn get_balance(&self, details: &Value) -> Result<Value, Error> {
-        let min_conf = details["num_confs"].as_u64().req()? as u32;
+        let min_conf = details["num_confs"]
+            .as_u64()
+            .req()
+            .map_err(|_err| Error::Other("missing num_confs option".into()))?
+            as u32;
         self._get_balance(min_conf)
     }
 
