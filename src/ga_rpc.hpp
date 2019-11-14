@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../subprojects/gdk_rpc/gdk_rpc.h"
+#include "ga_tor.hpp"
 #include "session_common.hpp"
 
 namespace ga {
@@ -185,11 +186,14 @@ namespace sdk {
         void disable_all_pin_logins();
 
     private:
-        static void gdkrpc_notif_handler(void* self_context, void* context, GDKRPC_json* json);
+        static void gdkrpc_notif_handler(void* self_context, GDKRPC_json* json);
 
-        gdkrpc_json m_netparams;
+        nlohmann::json m_netparams;
+        std::shared_ptr<tor_controller> m_tor_ctrl;
+
         GDKRPC_session* m_session;
         GA_notification_handler m_ga_notif_handler;
+        void* m_ga_notif_context;
     };
 
 } // namespace sdk

@@ -1,15 +1,45 @@
-
+#if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#elif defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#else
+// ??
+#endif
 
 #include "ga_rpc.hpp"
+#include "exception.hpp"
 #include "logging.hpp"
 
 namespace ga {
 namespace sdk {
 
+    static const std::string TOR_SOCKS5_PREFIX("socks5://");
+
+    static inline void check_code(const int32_t return_code)
+    {
+        switch (return_code) {
+        case GA_OK:
+            return;
+
+        case GA_RECONNECT:
+        case GA_SESSION_LOST:
+            throw reconnect_error();
+
+        case GA_TIMEOUT:
+            throw timeout_error();
+
+        case GA_NOT_AUTHORIZED:
+            throw login_error(""); // TODO: msg from rust
+
+        case GA_ERROR:
+        default:
+            throw std::runtime_error("call failed with: " + std::to_string(return_code));
+            break;
+        }
+    }
+
     ga_rpc::ga_rpc(const nlohmann::json& net_params)
-        : m_netparams(gdkrpc_json(net_params))
+        : m_netparams(net_params)
     {
         GDKRPC_create_session(&m_session);
     }
@@ -62,17 +92,35 @@ namespace sdk {
         }
     }
 
-    std::string ga_rpc::get_tor_socks5() { throw std::runtime_error("get_tor_socks5 not implemented"); }
-    void ga_rpc::emit_notification(std::string event, nlohmann::json details)
+    std::string ga_rpc::get_tor_socks5()
     {
-        throw std::runtime_error("emit_notification not implemented");
+        return m_tor_ctrl ? m_tor_ctrl->wait_for_socks5(DEFAULT_TOR_SOCKS_WAIT, nullptr) : std::string{};
     }
 
-    // TODO: remove me when tor MR extract lands
-    void ga_rpc::tor_sleep_hint(const std::string& hint) {}
-    std::string ga_rpc::get_tor_socks5() { throw std::runtime_error("get_tor_socks5 not implemented"); }
+    void ga_rpc::connect()
+    {
+        if (m_netparams.value("use_tor", false) && m_netparams.value("socks5", std::string{}).empty()) {
+            m_tor_ctrl = tor_controller::get_shared_ref();
+            std::string full_socks5
+                = m_tor_ctrl->wait_for_socks5(DEFAULT_TOR_SOCKS_WAIT, [&](std::shared_ptr<tor_bootstrap_phase> phase) {
+                      emit_notification("tor",
+                          { { "tag", phase->tag }, { "summary", phase->summary }, { "progress", phase->progress } });
+                  });
 
-    void ga_rpc::connect() { GDKRPC_connect(m_session, m_netparams.get()); }
+            if (full_socks5.empty()) {
+                throw timeout_error();
+            }
+
+            GDK_RUNTIME_ASSERT(full_socks5.size() > TOR_SOCKS5_PREFIX.size());
+            full_socks5.erase(0, TOR_SOCKS5_PREFIX.size());
+
+            m_netparams["socks5"] = full_socks5;
+
+            GDK_LOG_SEV(log_level::info) << "tor_socks address " << m_netparams["socks5"];
+        }
+
+        check_code(GDKRPC_connect(m_session, gdkrpc_json(m_netparams).get()));
+    }
 
     void ga_rpc::disconnect() { GDKRPC_disconnect(m_session); }
 
@@ -101,7 +149,7 @@ namespace sdk {
     }
     void ga_rpc::login(const std::string& mnemonic, const std::string& password)
     {
-        GDKRPC_login(m_session, nullptr, mnemonic.c_str(), password.c_str());
+        check_code(GDKRPC_login(m_session, nullptr, mnemonic.c_str(), password.c_str()));
     }
     void ga_rpc::login_with_pin(const std::string& pin, const nlohmann::json& pin_data)
     {
@@ -162,7 +210,7 @@ namespace sdk {
         return gdkrpc_json::from_serde(ret);
     }
 
-    void ga_rpc::gdkrpc_notif_handler(void* self_context, void* context, GDKRPC_json* json)
+    void ga_rpc::gdkrpc_notif_handler(void* self_context, GDKRPC_json* json)
     {
         // "new" needed because we want that to be on the heap. the notif handler will free it
         nlohmann::json* converted_heap = new nlohmann::json(gdkrpc_json::from_serde(json));
@@ -170,15 +218,26 @@ namespace sdk {
 
         ga_rpc* self = static_cast<ga_rpc*>(self_context);
         if (self->m_ga_notif_handler) {
-            self->m_ga_notif_handler(context, as_ptr);
+            self->m_ga_notif_handler(self->m_ga_notif_context, as_ptr);
+        }
+    }
+
+    void ga_rpc::emit_notification(std::string event, nlohmann::json details)
+    {
+        const nlohmann::json* heap_json = new nlohmann::json({ { "event", event }, { event, details } });
+        const GA_json* as_ptr = reinterpret_cast<const GA_json*>(heap_json);
+
+        if (m_ga_notif_handler) {
+            m_ga_notif_handler(m_ga_notif_context, as_ptr);
         }
     }
 
     void ga_rpc::set_notification_handler(GA_notification_handler handler, void* context)
     {
         m_ga_notif_handler = handler;
+        m_ga_notif_context = context;
 
-        GDKRPC_set_notification_handler(m_session, ga::sdk::ga_rpc::gdkrpc_notif_handler, this, context);
+        GDKRPC_set_notification_handler(m_session, ga::sdk::ga_rpc::gdkrpc_notif_handler, this);
     }
 
     nlohmann::json ga_rpc::get_receive_address(const nlohmann::json& details)

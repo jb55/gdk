@@ -55,7 +55,7 @@ use std::os::raw::c_char;
 #[cfg(feature = "android_logger")]
 use std::sync::{Once, ONCE_INIT};
 
-use crate::constants::{GA_ERROR, GA_MEMO_USER, GA_OK};
+use crate::constants::{GA_ERROR, GA_MEMO_USER, GA_NOT_AUTHORIZED, GA_OK, GA_RECONNECT};
 use crate::errors::OptionExt;
 use crate::network::{Network, RpcConfig};
 use crate::session::GDKRPC_session;
@@ -246,7 +246,7 @@ pub extern "C" fn GDKRPC_connect(
 
     if let Err(msg) = mclient {
         println!("Error connecting to rpc: {}", msg);
-        return GA_ERROR;
+        return GA_RECONNECT;
     }
 
     let client = mclient.unwrap();
@@ -254,7 +254,7 @@ pub extern "C" fn GDKRPC_connect(
 
     if let Err(msg) = mcount {
         println!("Error establishing connection to rpc: {}", msg);
-        return GA_ERROR;
+        return GA_RECONNECT;
     }
 
     sess.rpc_cfg = Some(rpc);
@@ -323,14 +323,14 @@ pub extern "C" fn GDKRPC_login(
 
     if sess.rpc_cfg.is_none() {
         println!("Could not login. Not connected.");
-        return GA_ERROR;
+        return GA_RECONNECT;
     }
 
     let rpc_cfg = sess.rpc_cfg.as_ref().unwrap();
     let mwallet = Wallet::login(&rpc_cfg, &mnemonic, None);
     if let Err(msg) = mwallet {
         println!("Could not login: {}", msg);
-        return GA_ERROR;
+        return GA_NOT_AUTHORIZED;
     }
 
     sess.wallet = Some(mwallet.unwrap());
@@ -650,12 +650,11 @@ pub extern "C" fn GDKRPC_get_fee_estimates(
 #[no_mangle]
 pub extern "C" fn GDKRPC_set_notification_handler(
     sess: *mut GDKRPC_session,
-    handler: extern "C" fn(*const libc::c_void, *const libc::c_void, *const GDKRPC_json),
+    handler: extern "C" fn(*const libc::c_void, *const GDKRPC_json),
     self_context: *const libc::c_void,
-    context: *const libc::c_void,
 ) -> i32 {
     let sess = safe_mut_ref!(sess);
-    sess.notify = Some((handler, self_context, context));
+    sess.notify = Some((handler, self_context));
 
     println!("set notification handler");
 

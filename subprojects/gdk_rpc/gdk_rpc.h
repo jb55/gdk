@@ -29,7 +29,7 @@ typedef struct GDKRPC_session GDKRPC_session;
 typedef struct GDKRPC_json GDKRPC_json;
 
 /** A notification handler */
-typedef void (*GDKRPC_notification_handler)(void *self_context, void* context, GDKRPC_json* details);
+typedef void (*GDKRPC_notification_handler)(void *self_context, GDKRPC_json* details);
 
 /**
  * Create a new session.
@@ -335,7 +335,7 @@ GDK_API int GDKRPC_get_settings(struct GDKRPC_session* session, GDKRPC_json** se
  *
  */
 
-GDK_API int GDKRPC_set_notification_handler(struct GDKRPC_session* session, GDKRPC_notification_handler handler, void *self_context, void* context);
+GDK_API int GDKRPC_set_notification_handler(struct GDKRPC_session* session, GDKRPC_notification_handler handler, void *self_context);
 
 GDK_API int GDKRPC_convert_json_to_string(const GDKRPC_json* json, char** output);
 
