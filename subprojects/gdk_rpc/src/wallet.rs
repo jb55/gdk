@@ -552,18 +552,45 @@ impl Wallet {
         let mempoolinfo: Value = self.rpc.call("getmempoolinfo", &[])?;
         let minrelayfee = json!(btc_to_usat(mempoolinfo["minrelaytxfee"].as_f64().req()? / 1000.0));
 
-        let mut estimates: Vec<Value> = (2u16..25u16)
-            .map(|target| {
-                let est: rpcjson::EstimateSmartFeeResult =
-                    self.rpc.call("estimatesmartfee", &[json!(target)])?;
-                Ok(est.feerate.unwrap_or_else(|| minrelayfee.clone()))
+        const START: usize = 2;
+        const END: usize = 25;
+        const SIZE: usize = END - START;
+
+        let mut slots = vec![[Value::Null]; SIZE];
+
+        let client = self.rpc.get_jsonrpc_client();
+
+        let requests = slots
+            .iter_mut()
+            .enumerate()
+            .map(|(i, slot)| {
+                slot[0] = json![i + START];
+                client.build_request("estimatesmartfee", slot)
             })
-            .collect::<Result<Vec<Value>, Error>>()?;
+            .collect::<Vec<jsonrpc::Request>>();
+
+        debug!("_make_fee_estimates batch requests: {:?}", requests);
+
+        let batch: Vec<Option<jsonrpc::Response>> =
+            client.send_batch(&requests).map_err(into_err)?;
+
+        let responses: Vec<jsonrpc::Response> =
+            batch.into_iter().collect::<Option<Vec<jsonrpc::Response>>>().req()?;
+
+        let mut estimates: Vec<Value> = responses
+            .into_iter()
+            .map(|mres| {
+                mres.result.and_then(|res| res["feerate"].as_f64().map(|f| Value::from(f / 1000.0)))
+            })
+            .collect::<Option<Vec<Value>>>()
+            .req()?;
 
         // prepend the estimate for 2 blocks as the estimate for 1 blocks
         estimates.insert(0, estimates[0].clone());
         // prepend the minrelayfee as the first item
         estimates.insert(0, minrelayfee);
+
+        debug!("estimates: {:?}", estimates);
 
         // the final format is: [ minrelayfee, est_for_2_blocks, est_for_2_blocks, est_for_3_blocks, ... ]
         Ok(json!(estimates))
