@@ -22,8 +22,8 @@ extern crate lazy_static;
 extern crate failure;
 #[macro_use]
 extern crate log;
-#[cfg(feature = "android_logger")]
-extern crate android_log;
+#[cfg(feature = "android_log")]
+extern crate android_logger;
 #[cfg(feature = "stderr_logger")]
 extern crate stderrlog;
 extern crate url;
@@ -47,13 +47,16 @@ pub mod wally;
 
 use serde_json::{from_value, Value};
 
+#[cfg(feature = "android_log")]
+use android_logger::{Config, FilterBuilder};
 use bitcoincore_rpc::RpcApi;
+use log::Level;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::mem::transmute;
 use std::os::raw::c_char;
 
-#[cfg(feature = "android_logger")]
+#[cfg(feature = "android_log")]
 use std::sync::{Once, ONCE_INIT};
 
 use crate::constants::{GA_ERROR, GA_MEMO_USER, GA_NOT_AUTHORIZED, GA_OK, GA_RECONNECT};
@@ -178,7 +181,7 @@ pub extern "C" fn GDKRPC_get_networks(
 // Session & account management
 //
 
-#[cfg(feature = "android_logger")]
+#[cfg(feature = "android_log")]
 static INIT_LOGGER: Once = ONCE_INIT;
 
 #[no_mangle]
@@ -188,8 +191,14 @@ pub extern "C" fn GDKRPC_create_session(
 ) -> i32 {
     debug!("GA_create_session()");
 
-    #[cfg(feature = "android_logger")]
-    INIT_LOGGER.call_once(|| android_log::init("gdk_rpc").unwrap());
+    #[cfg(feature = "android_log")]
+    INIT_LOGGER.call_once(|| {
+        android_logger::init_once(
+            Config::default()
+                .with_min_level(Level::Trace)
+                .with_filter(FilterBuilder::new().parse("debug,hello::crate=gdk_rpc").build()),
+        )
+    });
 
     let networks = &safe_ref!(networks).0;
     let mut rpc_networks: HashMap<String, Network> = HashMap::new();
