@@ -508,6 +508,7 @@ pub extern "C" fn GDKRPC_create_transaction(
         "addressees": &details["addressees"],
         "is_sweep": false,
         "memo": "",
+        "subaccount": 0,
         "change_subaccount": 0,
         "fee": 100, // FIXME
         "satoshi": 500, // FIXME
@@ -540,11 +541,11 @@ pub extern "C" fn GDKRPC_create_transaction(
 #[no_mangle]
 pub extern "C" fn GDKRPC_sign_transaction(
     sess: *mut GDKRPC_session,
-    tx_detail_unsigned: *const GDKRPC_json,
-    ret: *mut *const GA_auth_handler,
+    tx_detail_unsigned: *mut GDKRPC_json,
+    ret: *mut *const GDKRPC_json,
 ) -> i32 {
     let sess = safe_mut_ref!(sess);
-    let tx_detail_unsigned = &unsafe { &*tx_detail_unsigned }.0;
+    let tx_detail_unsigned = &mut safe_mut_ref!(tx_detail_unsigned).0;
 
     debug!("GA_sign_transaction() {:?}", tx_detail_unsigned);
 
@@ -553,22 +554,30 @@ pub extern "C" fn GDKRPC_sign_transaction(
 
     debug!("GA_sign_transaction() {:?}", tx_signed);
 
-    ok!(ret, GA_auth_handler::done(json!({ "error": "", "hex": tx_signed, "is_sweep": false })))
+    const NO_CHANGE_INDEX: u32 = 0xffffffff;
+
+    tx_detail_unsigned["hex"] = json!(tx_signed);
+    tx_detail_unsigned["change_index"] = json!({ "btc": NO_CHANGE_INDEX });
+
+    ok_json!(ret, tx_detail_unsigned)
 }
 
 #[no_mangle]
 pub extern "C" fn GDKRPC_send_transaction(
     sess: *const GDKRPC_session,
     tx_detail_signed: *const GDKRPC_json,
-    ret: *mut *const GA_auth_handler,
+    ret: *mut *const GDKRPC_json,
 ) -> i32 {
     let sess = safe_ref!(sess);
-    let tx_detail_signed = &unsafe { &*tx_detail_signed }.0;
+    debug!("GDKRPC_send_transaction deref");
+    let tx_detail_signed = &safe_ref!(tx_detail_signed).0;
+
+    debug!("GDKRPC_send_transaction detail_signed: {:?}", tx_detail_signed);
 
     let wallet = tryit!(sess.wallet().or_err("no loaded wallet"));
     let txid = tryit!(wallet.send_transaction(&tx_detail_signed));
 
-    ok!(ret, GA_auth_handler::done(json!({ "error": "", "txid": txid })))
+    ok_json!(ret, json!({ "error": "", "txid": txid }))
 }
 
 #[no_mangle]

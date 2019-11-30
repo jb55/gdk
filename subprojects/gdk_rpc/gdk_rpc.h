@@ -220,7 +220,7 @@ GDK_API int GDKRPC_create_transaction(
  *|     Returned GA_auth_handler should be freed using `GA_destroy_auth_handler`.
  */
 GDK_API int GDKRPC_sign_transaction(
-    struct GDKRPC_session* session, const GDKRPC_json* transaction_details, struct GA_auth_handler** call);
+    struct GDKRPC_session* session, const GDKRPC_json* transaction_details, GDKRPC_json** signed_tx);
 
 /**
  * Broadcast a non-Green signed transaction to the P2P network.
@@ -241,7 +241,7 @@ GDK_API int GDKRPC_broadcast_transaction(struct GDKRPC_session* session, const c
  *|     Returned GA_auth_handler should be freed using `GA_destroy_auth_handler`.
  */
 GDK_API int GDKRPC_send_transaction(
-    struct GDKRPC_session* session, const GDKRPC_json* transaction_details, struct GA_auth_handler** call);
+    struct GDKRPC_session* session, const GDKRPC_json* transaction_details, GDKRPC_json** res);
 
 /**
  * Request an email containing the user's nLockTime transactions.

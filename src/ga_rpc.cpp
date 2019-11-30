@@ -281,10 +281,10 @@ namespace sdk {
         return gdkrpc_json::from_serde(output);
     }
 
-    nlohmann::json ga_rpc::get_hw_device() const { throw std::runtime_error("get_hw_device not implemented"); }
+    nlohmann::json ga_rpc::get_hw_device() const { return nlohmann::json{}; }
 
     bool ga_rpc::is_rbf_enabled() const { throw std::runtime_error("is_rbf_enabled not implemented"); }
-    bool ga_rpc::is_watch_only() const { throw std::runtime_error("is_watch_only not implemented"); }
+    bool ga_rpc::is_watch_only() const { return false; }
 
     nlohmann::json ga_rpc::get_settings()
     {
@@ -309,10 +309,7 @@ namespace sdk {
     {
         throw std::runtime_error("get_all_twofactor_methods not implemented");
     }
-    std::vector<std::string> ga_rpc::get_enabled_twofactor_methods()
-    {
-        throw std::runtime_error("get_enabled_twofactor_methods not implemented");
-    }
+    std::vector<std::string> ga_rpc::get_enabled_twofactor_methods() { return {}; }
 
     void ga_rpc::set_email(const std::string& email, const nlohmann::json& twofactor_data)
     {
@@ -371,21 +368,37 @@ namespace sdk {
     {
         throw std::runtime_error("get_transaction_details not implemented");
     }
+
     nlohmann::json ga_rpc::create_transaction(const nlohmann::json& details)
     {
-        throw std::runtime_error("create_transaction not implemented");
+        GDKRPC_json* transaction;
+        GDKRPC_create_transaction(m_session, gdkrpc_json(details).get(), &transaction);
+        return gdkrpc_json::from_serde(transaction);
     }
+
     nlohmann::json ga_rpc::sign_transaction(const nlohmann::json& details)
     {
-        throw std::runtime_error("sign_transaction not implemented");
+        GDKRPC_json* signed_tx;
+        GDKRPC_sign_transaction(m_session, gdkrpc_json(details).get(), &signed_tx);
+        return gdkrpc_json::from_serde(signed_tx);
     }
+
     nlohmann::json ga_rpc::send_transaction(const nlohmann::json& details, const nlohmann::json& twofactor_data)
     {
-        throw std::runtime_error("send_transaction not implemented");
+        GDKRPC_json* res;
+        GDK_LOG_SEV(log_level::info) << "what";
+        GDKRPC_send_transaction(m_session, gdkrpc_json(details).get(), &res);
+        GDK_LOG_SEV(log_level::info) << "what2";
+        return gdkrpc_json::from_serde(res);
     }
+
     std::string ga_rpc::broadcast_transaction(const std::string& tx_hex)
     {
-        throw std::runtime_error("broadcast_transaction not implemented");
+        char* tx_hash;
+        GDKRPC_broadcast_transaction(m_session, tx_hex.c_str(), &tx_hash);
+        auto res = std::string(tx_hash);
+        GA_destroy_string(tx_hash);
+        return res;
     }
 
     void ga_rpc::sign_input(const wally_tx_ptr& tx, uint32_t index, const nlohmann::json& u, const std::string& der_hex)

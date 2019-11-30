@@ -487,11 +487,11 @@ impl Wallet {
 
     pub fn send_transaction(&self, details: &Value) -> Result<String, Error> {
         let tx_hex = details["hex"].as_str().req()?;
-        Ok(self.rpc.call::<String>("sendrawtransaction", &[tx_hex.into()])?)
+        self.send_raw_transaction(tx_hex)
     }
 
     pub fn send_raw_transaction(&self, tx_hex: &str) -> Result<String, Error> {
-        Ok(self.rpc.call::<String>("sendrawtransaction", &[tx_hex.into()])?)
+        self.rpc.call::<String>("sendrawtransaction", &[tx_hex.into()]).map_err(into_err)
     }
 
     /// Return the next address for the derivation and import it in Core.
