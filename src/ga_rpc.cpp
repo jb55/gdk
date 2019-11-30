@@ -39,7 +39,7 @@ namespace sdk {
     }
 
     ga_rpc::ga_rpc(const nlohmann::json& net_params, const nlohmann::json& networks)
-        : m_netparams(net_params)
+        : m_netparams(ga::sdk::network_parameters(net_params))
     {
         GDKRPC_create_session(&m_session, gdkrpc_json(networks).get());
     }
@@ -99,7 +99,7 @@ namespace sdk {
 
     void ga_rpc::connect()
     {
-        if (m_netparams.value("use_tor", false) && m_netparams.value("socks5", std::string{}).empty()) {
+        if (m_netparams.use_tor() && m_netparams.socks5().empty()) {
             m_tor_ctrl = tor_controller::get_shared_ref();
             std::string full_socks5
                 = m_tor_ctrl->wait_for_socks5(DEFAULT_TOR_SOCKS_WAIT, [&](std::shared_ptr<tor_bootstrap_phase> phase) {
@@ -114,12 +114,12 @@ namespace sdk {
             GDK_RUNTIME_ASSERT(full_socks5.size() > TOR_SOCKS5_PREFIX.size());
             full_socks5.erase(0, TOR_SOCKS5_PREFIX.size());
 
-            m_netparams["socks5"] = full_socks5;
+            m_netparams.get_json_mut()["socks5"] = full_socks5;
 
-            GDK_LOG_SEV(log_level::info) << "tor_socks address " << m_netparams["socks5"];
+            GDK_LOG_SEV(log_level::info) << "tor_socks address " << m_netparams.socks5();
         }
 
-        check_code(GDKRPC_connect(m_session, gdkrpc_json(m_netparams).get()));
+        check_code(GDKRPC_connect(m_session, gdkrpc_json(m_netparams.get_json()).get()));
     }
 
     void ga_rpc::disconnect() { GDKRPC_disconnect(m_session); }
@@ -471,10 +471,8 @@ namespace sdk {
         throw std::runtime_error("is_spending_limits_decrease not implemented");
     }
 
-    const network_parameters& ga_rpc::get_network_parameters() const
-    {
-        throw std::runtime_error("get_network_parameters not implemented");
-    }
+    const network_parameters& ga_rpc::get_network_parameters() const { return m_netparams; }
+
     signer& ga_rpc::get_signer() { throw std::runtime_error("get_signer not implemented"); }
     ga_pubkeys& ga_rpc::get_ga_pubkeys() { throw std::runtime_error("get_ga_pubkeys not implemented"); }
     ga_user_pubkeys& ga_rpc::get_user_pubkeys() { throw std::runtime_error("get_user_pubkeys not implemented"); }

@@ -5,6 +5,7 @@
 
 #include "../subprojects/gdk_rpc/gdk_rpc.h"
 #include "ga_tor.hpp"
+#include "network_parameters.hpp"
 #include "session_common.hpp"
 
 namespace ga {
@@ -188,7 +189,7 @@ namespace sdk {
     private:
         static void gdkrpc_notif_handler(void* self_context, GDKRPC_json* json);
 
-        nlohmann::json m_netparams;
+        network_parameters m_netparams;
         std::shared_ptr<tor_controller> m_tor_ctrl;
 
         GDKRPC_session* m_session;
