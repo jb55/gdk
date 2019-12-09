@@ -114,6 +114,30 @@ pub struct Wallet {
     cached_fees: (Value, Instant),
 }
 
+fn get_address_str(rpc: &RpcClient, netid: &NetworkId, public_key: &bitcoin::PublicKey) -> String {
+    match netid {
+        #[cfg(feature = "liquid")]
+        NetworkId::Elements(enet) => {
+            let mut addr =
+                elements::Address::p2shwpkh(&public_key, None, coins::liq::address_params(enet));
+            let blinding_key = wally::asset_blinding_key_to_ec_private_key(
+                &self.master_blinding_key,
+                &addr.script_pubkey(),
+            );
+            let blinding_pubkey = secp256k1::PublicKey::from_secret_key(&SECP, &blinding_key);
+            addr.blinding_pubkey = Some(blinding_pubkey);
+
+            // Store blinding privkey in the node.
+            let addr_str = addr.to_string();
+            coins::liq::store_blinding_key(&rpc, &addr_str, &blinding_key)?;
+            addr_str
+        }
+        NetworkId::Bitcoin(ref bnet) => Address::p2wpkh(public_key, *bnet).to_string(),
+        #[cfg(not(feature = "liquid"))]
+        _ => unimplemented!(),
+    }
+}
+
 impl Wallet {
     /// Get the address to use to store persistent state.
     fn persistent_state_address(
@@ -426,31 +450,6 @@ impl Wallet {
             ..Default::default()
         };
 
-        let address_str = match self.network.id() {
-            #[cfg(feature = "liquid")]
-            NetworkId::Elements(enet) => {
-                let mut addr = elements::Address::p2shwpkh(
-                    &child_xpub.public_key,
-                    None,
-                    coins::liq::address_params(enet),
-                );
-                let blinding_key = wally::asset_blinding_key_to_ec_private_key(
-                    &self.master_blinding_key,
-                    &addr.script_pubkey(),
-                );
-                let blinding_pubkey = secp256k1::PublicKey::from_secret_key(&SECP, &blinding_key);
-                addr.blinding_pubkey = Some(blinding_pubkey);
-
-                // Store blinding privkey in the node.
-                let addr_str = addr.to_string();
-                coins::liq::store_blinding_key(&self.rpc, &addr_str, &blinding_key)?;
-                addr_str
-            }
-            NetworkId::Bitcoin(bnet) => Address::p2wpkh(&child_xpub.public_key, bnet).to_string(),
-            #[cfg(not(feature = "liquid"))]
-            _ => unimplemented!(),
-        };
-
         // Since this is a newly generated address, rescanning is not required.
         self.rpc.import_public_key(&child_xpub.public_key, Some(&meta.to_label()?), Some(false))?;
 
@@ -462,6 +461,8 @@ impl Wallet {
         });
 
         self.save_persistent_state()?;
+
+        let address_str = get_address_str(&self.rpc, &self.network.id(), &child_xpub.public_key);
 
         Ok(address_str)
     }
