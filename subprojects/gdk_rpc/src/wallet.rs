@@ -248,7 +248,7 @@ impl Wallet {
     }
 
     pub fn logout(self) -> Result<(), Error> {
-        self.rpc.unload_wallet(None)?;
+        //self.rpc.unload_wallet(None)?;
         Ok(())
     }
 
