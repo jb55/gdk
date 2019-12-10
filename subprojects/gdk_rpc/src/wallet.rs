@@ -140,6 +140,64 @@ fn get_address_str(rpc: &RpcClient, netid: &NetworkId, public_key: &bitcoin::Pub
     }
 }
 
+fn import_pubkey(
+    client: &RpcClient,
+    fingerprint: &bip32::Fingerprint,
+    xpub: &bip32::ExtendedPubKey,
+    index: bip32::ChildNumber,
+    is_change: bool,
+    network_id: &NetworkId,
+) -> Result<rpcjson::ImportMultiResult, Error> {
+    let meta = AddressMeta {
+        fingerprint: Some(*fingerprint),
+        child: Some(index),
+        ..Default::default()
+    };
+
+    let label = meta.to_label()?;
+
+    // TODO: liquid
+    let network = network_id.get_bitcoin_network().req()?;
+
+    let addr = bitcoin::Address::p2wpkh(&xpub.public_key, network);
+    let script_pubkey = rpcjson::ImportMultiRequestScriptPubkey::Address(&addr);
+
+    let req = rpcjson::ImportMultiRequest {
+        script_pubkey: Some(script_pubkey),
+        pubkeys: &[xpub.public_key],
+        internal: Some(is_change),
+        watchonly: Some(true),
+        label: if is_change {
+            None
+        } else {
+            Some(&label)
+        },
+        keypool: Some(false),
+        ..Default::default()
+    };
+
+    let options = rpcjson::ImportMultiOptions {
+        rescan: Some(false),
+    };
+
+    let results = client.import_multi(&[req], Some(&options))?;
+    let result = results.get(0).req()?.clone();
+
+    if result.success == false {
+        if let Some(rpcjson::ImportMultiResultError {
+            message,
+            ..
+        }) = result.error
+        {
+            return Err(Error::Other(message.into()));
+        }
+
+        return Err(Error::Other("Unknown error in import_multi".into()));
+    }
+
+    Ok(result.clone())
+}
+
 impl Wallet {
     /// Get the address to use to store persistent state.
     fn persistent_state_address(
@@ -446,7 +504,9 @@ impl Wallet {
 
     pub fn sign_transaction(&self, details: &Value) -> Result<String, Error> {
         debug!("sign_transaction(): {:?}", details);
-        let change_address = self.next_address(&self.internal_xpriv, &self.next_internal_child)?;
+        let change = true;
+        let change_address =
+            self.next_address(&self.internal_xpriv, &self.next_internal_child, change)?;
 
         // If we don't have any inputs, we can fail early.
         let unspent: Vec<Value> = self.rpc.call("listunspent", &[0.into()])?;
@@ -499,18 +559,20 @@ impl Wallet {
         &self,
         xpriv: &bip32::ExtendedPrivKey,
         child: &cell::Cell<bip32::ChildNumber>,
+        is_change: bool,
     ) -> Result<String, Error> {
         let child_xpriv = xpriv.derive_priv(&SECP, &[child.get()])?;
         let child_xpub = bip32::ExtendedPubKey::from_private(&SECP, &child_xpriv);
 
-        let meta = AddressMeta {
-            fingerprint: Some(xpriv.fingerprint(&SECP)),
-            child: Some(child.get()),
-            ..Default::default()
-        };
-
-        // Since this is a newly generated address, rescanning is not required.
-        self.rpc.import_public_key(&child_xpub.public_key, Some(&meta.to_label()?), Some(false))?;
+        let fingerprint = xpriv.fingerprint(&SECP);
+        let multi_result = import_pubkey(
+            &self.rpc,
+            &fingerprint,
+            &child_xpub,
+            child.get(),
+            is_change,
+            &self.network.id(),
+        )?;
 
         child.set(match child.get() {
             bip32::ChildNumber::Normal {
@@ -527,16 +589,7 @@ impl Wallet {
     }
 
     pub fn get_receive_address(&self, _details: &Value) -> Result<Value, Error> {
-        let address = self.next_address(&self.external_xpriv, &self.next_external_child)?;
-        //  {
-        //    "address": "2N2x4EgizS2w3DUiWYWW9pEf4sGYRfo6PAX",
-        //    "address_type": "p2wsh",
-        //    "branch": 1,
-        //    "pointer": 13,
-        //    "script": "52210338832debc5e15ce143d5cf9241147ac0019e7516d3d9569e04b0e18f3278718921025dfaa85d64963252604e1b139b40182bb859a9e2e1aa2904876c34e82158d85452ae",
-        //    "script_type": 14,
-        //    "subtype": null
-        //  }
+        let address = self.next_address(&self.external_xpriv, &self.next_external_child, false)?;
         Ok(json!({
             "address": address,
             "address_type": "p2wpkh",

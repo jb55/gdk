@@ -47,6 +47,15 @@ pub enum NetworkId {
     Bitcoin(bitcoin::Network),
 }
 
+impl NetworkId {
+    pub fn get_bitcoin_network(self: NetworkId) -> Option<bitcoin::Network> {
+        match self {
+            NetworkId::Bitcoin(net) => Some(net),
+            _ => None,
+        }
+    }
+}
+
 fn make_socks5_client(url: &str) -> Option<HyperClient> {
     let connector = Socks5HttpConnector::new(url).ok();
     connector.map(hyper::Client::with_connector)
