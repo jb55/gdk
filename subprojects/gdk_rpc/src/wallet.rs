@@ -416,6 +416,7 @@ impl Wallet {
         Ok(json!({
             "type": "core",
             "pointer": 0,
+            "required_ca": 0,
             "receiving_id": "",
             "name": "RPC wallet",
             "has_transactions": has_transactions,
