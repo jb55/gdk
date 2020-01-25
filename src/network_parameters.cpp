@@ -159,6 +159,18 @@ static std::map<std::string, std::shared_ptr<nlohmann::json>> registered_network
             { "development", true }, { "csv_buckets", std::vector<uint32_t>{ 144, 4320, 51840 } },
             { "rpc", false } })) },
 
+    { "liquid-rpc-mainnet",
+        std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Liquid" }, { "network", "liquid-rpc-mainnet" },
+            { "address_explorer_url", "https://blockstream.info/liquid/address/" },
+            { "asset_registry_url", "https://assets.blockstream.info" },
+            { "asset_registry_onion_url", "http://vi5flmr4z3h3luup.onion" },
+            { "tx_explorer_url", "https://blockstream.info/liquid/tx/" }, { "default_peers", nlohmann::json::array() },
+            { "p2pkh_version", 57u }, { "p2sh_version", 39u }, { "bech32_prefix", "lq" }, { "mainnet", true },
+            { "liquid", true }, { "development", false },
+            { "policy_asset", "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d" },
+            { "blinded_prefix", 12u }, { "ct_exponent", 0 }, { "ct_bits", 36 },
+            { "csv_buckets", std::vector<uint32_t>{ 25920, 51840, 65535 } }, { "rpc", true } })) },
+
     { "rpc-mainnet",
         std::make_shared<nlohmann::json>(nlohmann::json({ { "name", "RPC Mainnet" }, { "network", "rpc-mainnet" },
             { "address_explorer_url", "https://blockstream.info/address/" },
