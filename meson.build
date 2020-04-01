@@ -262,14 +262,14 @@ gdkrust = subproject('gdk_rust')
 wallycore = subproject('libwally-core')
 subproject_deps += gdkrust.get_variable('gdk_rust_dep')
 subproject_deps += wallycore.get_variable('wallycore_dep')
+subproject_deps += dependency('external_tor', fallback : ['tor', 'tor_dep'])
+subproject_deps += dependency('external_websocketpp', fallback : ['websocketpp', 'websocketpp_dep'])
+subproject_deps += dependency('external_openssl', fallback : ['openssl', 'openssl_dep'])
 subproject_deps += dependency('external_autobahn-cpp', fallback : ['autobahn-cpp', 'autobahn_dep'])
 subproject_deps += dependency('external_boost', fallback : ['boost', 'boost_dep'])
 subproject_deps += dependency('external_GSL', fallback : ['GSL', 'GSL_dep'])
 subproject_deps += dependency('external_json', fallback : ['json', 'nlohmann_json_dep'])
 subproject_deps += dependency('external_msgpack', fallback : ['msgpack', 'msgpack_dep'])
-subproject_deps += dependency('external_openssl', fallback : ['openssl', 'openssl_dep'])
-subproject_deps += dependency('external_websocketpp', fallback : ['websocketpp', 'websocketpp_dep'])
-subproject_deps += dependency('external_tor', fallback : ['tor', 'tor_dep'])
 
 # includes
 incdirs = ['.', 'subprojects/gdk_rust']
